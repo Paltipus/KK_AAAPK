@@ -30,7 +30,7 @@ namespace AAAPK
 	{
 		public const string GUID = "madevil.kk.AAAPK";
 		public const string Name = "Additional Accessory Advanced Parent Knockoff";
-		public const string Version = "1.0.2.0";
+		public const string Version = "1.0.3.0";
 
 		internal static ManualLogSource _logger;
 		internal static Harmony _hooksMaker;
@@ -42,6 +42,7 @@ namespace AAAPK
 		internal static ConfigEntry<float> _cfgMakerWinX;
 		internal static ConfigEntry<float> _cfgMakerWinY;
 		internal static ConfigEntry<bool> _cfgMakerWinResScale;
+		internal static ConfigEntry<bool> _cfgRemoveUnassignedPart;
 
 		internal static MakerButton _accWinCtrlEnable;
 
@@ -56,6 +57,8 @@ namespace AAAPK
 			_instance = this;
 
 			_cfgDebugMode = Config.Bind("Debug", "Debug Mode", false, new ConfigDescription("", null, new ConfigurationManagerAttributes { IsAdvanced = true, Order = 20 }));
+
+			_cfgRemoveUnassignedPart = Config.Bind("Maker", "Remove Unassigned Part", true, new ConfigDescription("Remove rules for missing or unassigned accesseries", null, new ConfigurationManagerAttributes { Order = 20 }));
 
 			_cfgDragPass = Config.Bind("Maker", "Drag Pass Mode", false, new ConfigDescription("Setting window will not block mouse dragging", null, new ConfigurationManagerAttributes { Order = 15 }));
 

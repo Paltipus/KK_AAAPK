@@ -176,6 +176,8 @@ namespace AAAPK
 					{
 						_logger.LogMessage($"Slot{_slotIndex + 1:00} is not assigned or not exist");
 						_queueSlots.Remove(_slotIndex);
+						if (_cfgRemoveUnassignedPart.Value)
+							RemoveRule(_slotIndex);
 						continue;
 					}
 

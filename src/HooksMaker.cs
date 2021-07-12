@@ -108,7 +108,11 @@ namespace AAAPK
 				if (index == 0)
 				{
 					if (_charaConfigWindow != null)
+					{
 						_charaConfigWindow.enabled = false;
+						if (_cfgRemoveUnassignedPart.Value)
+							_pluginCtrl.RemoveRule(__instance.SlotIndex());
+					}
 				}
 				else
 				{
@@ -145,13 +149,13 @@ namespace AAAPK
 			[HarmonyPriority(Priority.First)]
 			[HarmonyPrefix, HarmonyPatch(typeof(CvsAccessory), "UpdateSelectAccessoryKind", new[] { typeof(string), typeof(Sprite), typeof(int) })]
 			private static void CvsAccessory_UpdateSelectAccessoryKind_Prefix(CvsAccessory __instance)
-            {
+			{
 				ChaControl _chaCtrl = CustomBase.Instance.chaCtrl;
 				AAAPKController _pluginCtrl = GetController(_chaCtrl);
 				if (_pluginCtrl == null) return;
 
 				if (_pluginCtrl.ParentRules.Any(x => x.ParentSlot == __instance.SlotIndex()))
-                {
+				{
 					List<GameObject> _objAccessories = ListObjAccessory(_chaCtrl);
 					foreach (int _slot in _pluginCtrl.ParentRules.Where(x => x.ParentSlot == __instance.SlotIndex()).Select(x => x.Slot).ToList())
 					{

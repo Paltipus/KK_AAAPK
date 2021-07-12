@@ -107,12 +107,31 @@ namespace AAAPK
 						if (GUILayout.Button("Clear", _gloButtonS))
 						{
 							_pluginCtrl.RemoveRule(_currentSlotIndex);
-							RefreshCoordinate();
+							//RefreshCoordinate();
+
+							SetSelectedParent(null);
+							SetSelectedBone(null);
+							_currentSlotRule = null;
+
+							if (_currentSlotGameObject == null) return;
+
+							ChaFileAccessory.PartsInfo _part = _pluginCtrl._listPartsInfo.ElementAtOrDefault(_currentSlotIndex);
+							if (_part == null) return;
+
+							string _parentKey = _part.parentKey;
+							GameObject _parentNode = _chaCtrl.GetReferenceInfo((ChaReference.RefObjKey) Enum.Parse(typeof(ChaReference.RefObjKey), _parentKey));
+							_currentSlotGameObject.transform.SetParent(_parentNode.transform, false);
 						}
 						GUI.enabled = true;
-
-						GUILayout.Label($"Current: {_selectedParentGameObject?.name}");
-
+						if (_currentSlotRule != null)
+						{
+							if (_selectedParentGameObject == null)
+								GUILayout.Label($"Current: (Missing)");
+							else
+								GUILayout.Label($"Current: {_selectedParentGameObject?.name}");
+						}
+						else
+							GUILayout.Label($"Current: (None)");
 						GUILayout.FlexibleSpace();
 					}
 					GUILayout.EndHorizontal();
