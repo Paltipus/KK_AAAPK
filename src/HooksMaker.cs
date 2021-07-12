@@ -105,8 +105,6 @@ namespace AAAPK
 
 				_instance.StartCoroutine(ToggleButtonVisibility());
 
-				if (!_pluginCtrl._triggerSlots.Contains(__instance.SlotIndex())) return;
-
 				if (index == 0)
 				{
 					if (_charaConfigWindow != null)
@@ -115,9 +113,18 @@ namespace AAAPK
 				else
 				{
 					if (_charaConfigWindow != null && _charaConfigWindow.enabled)
-						_charaConfigWindow.MoveObjectToPlace();
+					{
+						if (_pluginCtrl.ParentRules.Any(x => x.ParentSlot == (__instance.SlotIndex())))
+						{
+							_pluginCtrl.InitCurOutfitTriggerInfo("CvsAccessory_UpdateSelectAccessoryType_Postfix");
+							return;
+						}
+
+						if (!_pluginCtrl._triggerSlots.Contains(__instance.SlotIndex()))
+							_charaConfigWindow.MoveObjectToPlace();
+					}
 					else
-						_pluginCtrl.InitCurOutfitTriggerInfo("CvsAccessory_UpdateSelectAccessoryKind_Postfix");
+						_pluginCtrl.InitCurOutfitTriggerInfo("CvsAccessory_UpdateSelectAccessoryType_Postfix");
 				}
 			}
 
@@ -132,27 +139,38 @@ namespace AAAPK
 				if (_charaConfigWindow != null && _charaConfigWindow.enabled)
 					_charaConfigWindow.MoveObjectToPlace();
 				else
-					_pluginCtrl.InitCurOutfitTriggerInfo("CvsAccessory_UpdateSelectAccessoryKind_Postfix");
+					_pluginCtrl.InitCurOutfitTriggerInfo("CvsAccessory_UpdateSelectAccessoryParent_Postfix");
 			}
 
-			[HarmonyPostfix, HarmonyPatch(typeof(CvsAccessory), "UpdateSelectAccessoryKind", new[] { typeof(string), typeof(Sprite), typeof(int) })]
-			private static void CvsAccessory_UpdateSelectAccessoryKind_Postfix(CvsAccessory __instance)
-			{
-				_instance.StartCoroutine(ToggleButtonVisibility());
-
-				AAAPKController _pluginCtrl = GetController(CustomBase.Instance.chaCtrl);
+			[HarmonyPriority(Priority.First)]
+			[HarmonyPrefix, HarmonyPatch(typeof(CvsAccessory), "UpdateSelectAccessoryKind", new[] { typeof(string), typeof(Sprite), typeof(int) })]
+			private static void CvsAccessory_UpdateSelectAccessoryKind_Prefix(CvsAccessory __instance)
+            {
+				ChaControl _chaCtrl = CustomBase.Instance.chaCtrl;
+				AAAPKController _pluginCtrl = GetController(_chaCtrl);
 				if (_pluginCtrl == null) return;
 
-				if (!_pluginCtrl._triggerSlots.Contains(__instance.SlotIndex())) return;
+				if (_pluginCtrl.ParentRules.Any(x => x.ParentSlot == __instance.SlotIndex()))
+                {
+					List<GameObject> _objAccessories = ListObjAccessory(_chaCtrl);
+					foreach (int _slot in _pluginCtrl.ParentRules.Where(x => x.ParentSlot == __instance.SlotIndex()).Select(x => x.Slot).ToList())
+					{
+						GameObject _ca_slot = _objAccessories.FirstOrDefault(x => x.name == $"ca_slot{_slot:00}");
 
-				if (_charaConfigWindow != null && _charaConfigWindow.enabled)
-					_charaConfigWindow.MoveObjectToPlace();
-				else
-					_pluginCtrl.InitCurOutfitTriggerInfo("CvsAccessory_UpdateSelectAccessoryKind_Postfix");
+						if (_ca_slot == null) continue;
+
+						ChaFileAccessory.PartsInfo _part = _pluginCtrl._listPartsInfo.ElementAtOrDefault(_slot);
+						if (_part == null) continue;
+
+						string _parentKey = _part.parentKey;
+						GameObject _parentNode = _chaCtrl.GetReferenceInfo((ChaReference.RefObjKey) Enum.Parse(typeof(ChaReference.RefObjKey), _parentKey));
+						_ca_slot.transform.SetParent(_parentNode.transform, false);
+					}
+				}
 			}
 
 			internal static void MakerHandler_Coordinate_Load_Prefix()
-            {
+			{
 				if (_charaConfigWindow != null)
 				{
 					_charaConfigWindow.SetSelectedParent(null);

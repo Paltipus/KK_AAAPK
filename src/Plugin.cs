@@ -30,7 +30,7 @@ namespace AAAPK
 	{
 		public const string GUID = "madevil.kk.AAAPK";
 		public const string Name = "Additional Accessory Advanced Parent Knockoff";
-		public const string Version = "1.0.1.0";
+		public const string Version = "1.0.2.0";
 
 		internal static ManualLogSource _logger;
 		internal static Harmony _hooksMaker;
@@ -136,7 +136,7 @@ namespace AAAPK
 			{
 				BaseUnityPlugin _instance = JetPack.Toolbox.GetPluginInstance("keelhauled.draganddrop");
 				if (_instance != null)
-                {
+				{
 					Type MakerHandler = _instance.GetType().Assembly.GetType("DragAndDrop.MakerHandler");
 					_hooksInstance.Patch(MakerHandler.GetMethod("Coordinate_Load", AccessTools.all), prefix: new HarmonyMethod(typeof(HooksMaker), nameof(HooksMaker.MakerHandler_Coordinate_Load_Prefix)));
 				}
@@ -179,8 +179,26 @@ namespace AAAPK
 
 			JetPack.CharaMaker.OnAccessoryKindChanged += (_sender, _args) =>
 			{
+				_instance.StartCoroutine(ToggleButtonVisibility());
+
 				AAAPKController _pluginCtrl = GetController(CustomBase.Instance.chaCtrl);
+				if (_pluginCtrl == null) return;
+
 				_pluginCtrl.UpdatePartsInfoList();
+
+				if (_pluginCtrl.ParentRules.Any(x => x.ParentSlot == _args.SlotIndex))
+				{
+					_pluginCtrl.InitCurOutfitTriggerInfo("OnAccessoryKindChanged");
+					return;
+				}
+
+				if (_charaConfigWindow != null && _charaConfigWindow.enabled)
+				{
+					if (!_pluginCtrl._triggerSlots.Contains(_args.SlotIndex))
+						_charaConfigWindow.MoveObjectToPlace();
+				}
+				else
+					_pluginCtrl.InitCurOutfitTriggerInfo("OnAccessoryKindChanged");
 			};
 
 			JetPack.CharaMaker.OnCvsNavMenuClick += (_sender, _args) =>
