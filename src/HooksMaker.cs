@@ -118,7 +118,7 @@ namespace AAAPK
 				{
 					if (_charaConfigWindow != null && _charaConfigWindow.enabled)
 					{
-						if (_pluginCtrl.ParentRules.Any(x => x.ParentSlot == (__instance.SlotIndex())))
+						if (_pluginCtrl.ParentRules.Any(x => x.ParentType == ParentType.Accessory && x.ParentSlot == (__instance.SlotIndex())))
 						{
 							_pluginCtrl.InitCurOutfitTriggerInfo("CvsAccessory_UpdateSelectAccessoryType_Postfix");
 							return;
@@ -154,10 +154,10 @@ namespace AAAPK
 				AAAPKController _pluginCtrl = GetController(_chaCtrl);
 				if (_pluginCtrl == null) return;
 
-				if (_pluginCtrl.ParentRules.Any(x => x.ParentSlot == __instance.SlotIndex()))
+				if (_pluginCtrl.ParentRules.Any(x => x.ParentType == ParentType.Accessory && x.ParentSlot == __instance.SlotIndex()))
 				{
 					List<GameObject> _objAccessories = ListObjAccessory(_chaCtrl);
-					foreach (int _slot in _pluginCtrl.ParentRules.Where(x => x.ParentSlot == __instance.SlotIndex()).Select(x => x.Slot).ToList())
+					foreach (int _slot in _pluginCtrl.ParentRules.Where(x => x.ParentType == ParentType.Accessory && x.ParentSlot == __instance.SlotIndex()).Select(x => x.Slot).ToList())
 					{
 						GameObject _ca_slot = _objAccessories.FirstOrDefault(x => x.name == $"ca_slot{_slot:00}");
 

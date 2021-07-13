@@ -30,7 +30,7 @@ namespace AAAPK
 	{
 		public const string GUID = "madevil.kk.AAAPK";
 		public const string Name = "Additional Accessory Advanced Parent Knockoff";
-		public const string Version = "1.0.3.0";
+		public const string Version = "1.0.4.0";
 
 		internal static ManualLogSource _logger;
 		internal static Harmony _hooksMaker;
@@ -189,7 +189,7 @@ namespace AAAPK
 
 				_pluginCtrl.UpdatePartsInfoList();
 
-				if (_pluginCtrl.ParentRules.Any(x => x.ParentSlot == _args.SlotIndex))
+				if (_pluginCtrl.ParentRules.Any(x => x.ParentType == ParentType.Accessory && x.ParentSlot == _args.SlotIndex))
 				{
 					_pluginCtrl.InitCurOutfitTriggerInfo("OnAccessoryKindChanged");
 					return;
