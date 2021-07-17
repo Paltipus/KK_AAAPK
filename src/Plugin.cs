@@ -21,7 +21,7 @@ using KKAPI.Utilities;
 namespace AAAPK
 {
 	[BepInPlugin(GUID, Name, Version)]
-	[BepInDependency("madevil.JetPack")]
+	[BepInDependency("madevil.JetPack", JetPack.Core.Version)]
 	[BepInDependency("marco.kkapi", "1.17")]
 	[BepInDependency("KKABMX.Core")]
 	[BepInDependency("com.deathweasel.bepinex.accessoryclothes")]
@@ -30,7 +30,7 @@ namespace AAAPK
 	{
 		public const string GUID = "madevil.kk.AAAPK";
 		public const string Name = "Additional Accessory Advanced Parent Knockoff";
-		public const string Version = "1.0.4.0";
+		public const string Version = "1.0.5.0";
 
 		internal static ManualLogSource _logger;
 		internal static Harmony _hooksMaker;
@@ -219,6 +219,8 @@ namespace AAAPK
 					int _slotIndex = _args.SideToggle.GetComponentInChildren<CvsAccessory>(true).SlotIndex();
 					_charaConfigWindow._onAccTab = true;
 					StartCoroutine(ToggleButtonVisibility());
+					if (_pluginCtrl.GetSlotRule(_slotIndex) != null)
+						_pluginCtrl.InitCurOutfitTriggerInfo("OnCvsNavMenuClick");
 				}
 				else
 				{

@@ -134,6 +134,9 @@ namespace AAAPK
 				StartCoroutine(InitCurOutfitTriggerInfoHack("AccessoryTransferredHandler"));
 			}
 
+			internal ParentRule GetSlotRule(int _slotIndex) => GetSlotRule(_currentCoordinateIndex, _slotIndex);
+			internal ParentRule GetSlotRule(int _coordinateIndex, int _slotIndex) => ParentRules.FirstOrDefault(x => x.Coordinate == _coordinateIndex && x.Slot == _slotIndex);
+
 			internal IEnumerator InitCurOutfitTriggerInfoHack(string _caller)
 			{
 				if (_duringLoad)
@@ -235,6 +238,9 @@ namespace AAAPK
 					}
 
 					_ca_slot.transform.SetParent(_parentNode, false);
+					_ca_slot.transform.localPosition = Vector3.zero;
+					_ca_slot.transform.localEulerAngles = Vector3.zero;
+					_ca_slot.transform.localScale = Vector3.one;
 					DebugMsg(LogLevel.Info, $"[InitCurOutfitTriggerInfoCoroutine][Slot{_slotIndex + 1:00}][Parent: {_rule.ParentType} {_rule.ParentSlot}] moved");
 
 					_queueSlots.Remove(_slotIndex);
@@ -273,7 +279,7 @@ namespace AAAPK
 				ParentRule _rule = ParentRules.Where(x => x.Coordinate == _coordinateIndex && x.Slot == _srcSlotIndex).FirstOrDefault().JsonClone<ParentRule>();
 				RemoveRule(_coordinateIndex, _srcSlotIndex);
 				if (_rule != null)
-                {
+				{
 					_rule.Slot = _dstSlotIndex;
 					ParentRules.Add(_rule);
 				}
