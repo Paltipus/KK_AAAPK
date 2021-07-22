@@ -3,7 +3,6 @@ using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
 using System.IO;
-//using System.Reflection;
 
 using UnityEngine;
 using ChaCustom;
@@ -23,14 +22,14 @@ namespace AAAPK
 	[BepInPlugin(GUID, Name, Version)]
 	[BepInDependency("madevil.JetPack", JetPack.Core.Version)]
 	[BepInDependency("marco.kkapi", "1.17")]
-	[BepInDependency("KKABMX.Core")]
+	[BepInDependency("KKABMX.Core", "4.4.2")]
 	[BepInDependency("com.deathweasel.bepinex.accessoryclothes")]
-	[BepInDependency("com.joan6694.illusionplugins.moreaccessories", "1.0.9")]
+	[BepInDependency("com.joan6694.illusionplugins.moreaccessories", "1.1.0")]
 	public partial class AAAPK : BaseUnityPlugin
 	{
 		public const string GUID = "madevil.kk.AAAPK";
 		public const string Name = "Additional Accessory Advanced Parent Knockoff";
-		public const string Version = "1.0.5.0";
+		public const string Version = "1.1.0.0";
 
 		internal static ManualLogSource _logger;
 		internal static Harmony _hooksMaker;
@@ -46,7 +45,7 @@ namespace AAAPK
 
 		internal static MakerButton _accWinCtrlEnable;
 
-		private static string _savePath = Path.Combine(Paths.GameRootPath, "Temp");
+		private static readonly string _savePath = Path.Combine(Paths.GameRootPath, "Temp");
 		public const int ExtDataVer = 1;
 		internal static Dictionary<string, Type> _typeList = new Dictionary<string, Type>();
 		internal static Type ChaAccessoryClothes = null;
@@ -101,8 +100,8 @@ namespace AAAPK
 
 			{
 				BaseUnityPlugin _instance = JetPack.Toolbox.GetPluginInstance("madevil.kk.ca");
-				if (_instance != null && !JetPack.Toolbox.PluginVersionCompare(_instance, "1.3.0.0"))
-					_logger.LogError($"Character Accessory 1.3+ is required to work properly, version {_instance.Info.Metadata.Version} detected");
+				if (_instance != null && !JetPack.Toolbox.PluginVersionCompare(_instance, "1.4.0.0"))
+					_logger.LogError($"Character Accessory 1.4+ is required to work properly, version {_instance.Info.Metadata.Version} detected");
 			}
 
 			{
@@ -121,7 +120,7 @@ namespace AAAPK
 					_hooksInstance.Patch(UI.GetMethod("ShowUI", AccessTools.all, null, new[] { typeof(int) }, null), transpiler: new HarmonyMethod(typeof(Hooks), nameof(Hooks.UI_ShowUI_Transpiler)));
 
 					Type CharaController = _instance.GetType().Assembly.GetType("KK_Plugins.DynamicBoneEditor.CharaController");
-					//_hooksInstance.Patch(AccessTools.Method(CharaController.GetNestedType("<ApplyData>d__12", BindingFlags.NonPublic), "MoveNext"), transpiler: new HarmonyMethod(typeof(Hooks), nameof(Hooks.CharaController_ApplyData_Transpiler)));
+					//_hooksInstance.Patch(AccessTools.Method(CharaController.GetNestedType("<ApplyData>d__12", System.Reflection.BindingFlags.NonPublic), "MoveNext"), transpiler: new HarmonyMethod(typeof(Hooks), nameof(Hooks.CharaController_ApplyData_Transpiler)));
 					_hooksInstance.Patch(AccessTools.Method(AccessTools.Inner(CharaController, "<ApplyData>d__12"), "MoveNext"), transpiler: new HarmonyMethod(typeof(Hooks), nameof(Hooks.CharaController_ApplyData_Transpiler)));
 				}
 			}
@@ -129,11 +128,6 @@ namespace AAAPK
 			{
 				BaseUnityPlugin _instance = JetPack.Toolbox.GetPluginInstance("com.deathweasel.bepinex.accessoryclothes");
 				ChaAccessoryClothes = _instance.GetType().Assembly.GetType("KK_Plugins.ChaAccessoryClothes");
-			}
-
-			{
-				BaseUnityPlugin _instance = JetPack.Toolbox.GetPluginInstance("KKABMX.Core");
-				_typeList["BoneController"] = _instance.GetType().Assembly.GetType("KKABMX.Core.BoneController");
 			}
 
 			{
@@ -180,30 +174,6 @@ namespace AAAPK
 				Destroy(_charaConfigWindow);
 			};
 
-			JetPack.CharaMaker.OnAccessoryKindChanged += (_sender, _args) =>
-			{
-				_instance.StartCoroutine(ToggleButtonVisibility());
-
-				AAAPKController _pluginCtrl = GetController(CustomBase.Instance.chaCtrl);
-				if (_pluginCtrl == null) return;
-
-				_pluginCtrl.UpdatePartsInfoList();
-
-				if (_pluginCtrl.ParentRules.Any(x => x.ParentType == ParentType.Accessory && x.ParentSlot == _args.SlotIndex))
-				{
-					_pluginCtrl.InitCurOutfitTriggerInfo("OnAccessoryKindChanged");
-					return;
-				}
-
-				if (_charaConfigWindow != null && _charaConfigWindow.enabled)
-				{
-					if (!_pluginCtrl._triggerSlots.Contains(_args.SlotIndex))
-						_charaConfigWindow.MoveObjectToPlace();
-				}
-				else
-					_pluginCtrl.InitCurOutfitTriggerInfo("OnAccessoryKindChanged");
-			};
-
 			JetPack.CharaMaker.OnCvsNavMenuClick += (_sender, _args) =>
 			{
 				AAAPKController _pluginCtrl = GetController(CustomBase.Instance.chaCtrl);
@@ -220,7 +190,7 @@ namespace AAAPK
 					_charaConfigWindow._onAccTab = true;
 					StartCoroutine(ToggleButtonVisibility());
 					if (_pluginCtrl.GetSlotRule(_slotIndex) != null)
-						_pluginCtrl.InitCurOutfitTriggerInfo("OnCvsNavMenuClick");
+						_pluginCtrl.ApplyParentRuleList("OnCvsNavMenuClick");
 				}
 				else
 				{
@@ -236,27 +206,19 @@ namespace AAAPK
 			yield return JetPack.Toolbox.WaitForEndOfFrame;
 
 			ChaFileAccessory.PartsInfo _part = JetPack.Accessory.GetPartsInfo(CustomBase.Instance.chaCtrl, JetPack.CharaMaker.CurrentAccssoryIndex);
-			_accWinCtrlEnable.Visible.OnNext(_part?.type > 120);
+			_accWinCtrlEnable.Visible.OnNext(_part?.type != 120);
 		}
 
-		internal static GameObject GetObjAccessory(ChaControl _chaCtrl, int _slotIndex)
-		{
-			return _chaCtrl.GetComponentsInChildren<ListInfoComponent>(true)?.FirstOrDefault(x => x != null && x.gameObject != null && x.gameObject.name == $"ca_slot{_slotIndex:00}")?.gameObject;
-		}
+		internal static GameObject GetObjAccessory(ChaControl _chaCtrl, int _slotIndex) => JetPack.Accessory.GetObjAccessory(_chaCtrl, _slotIndex);
 
-		internal static List<GameObject> ListObjAccessory(ChaControl _chaCtrl)
-		{
-			return _chaCtrl.GetComponentsInChildren<ListInfoComponent>(true)?.Where(x => x != null && x.gameObject != null && x.gameObject.name.StartsWith("ca_slot")).Select(x => x.gameObject).OrderBy(x => x.name).ToList() ?? new List<GameObject>();
-		}
+		internal static List<GameObject> ListObjAccessory(ChaControl _chaCtrl) => JetPack.Accessory.ListObjAccessory(_chaCtrl);
 
-		internal static List<GameObject> ListObjAccessory(GameObject _gameObject)
-		{
-			return _gameObject?.GetComponentsInChildren<ListInfoComponent>(true)?.Where(x => x != null && x.gameObject != null && x.gameObject.name.StartsWith("ca_slot")).Select(x => x.gameObject).ToList() ?? new List<GameObject>();
-		}
+		internal static List<GameObject> ListObjAccessory(GameObject _gameObject) => JetPack.Accessory.ListObjAccessory(_gameObject);
 
 		internal static void AccGotHighRemoveEffect()
 		{
-			if (!_typeList.ContainsKey("AccGotHigh")) return;
+			if (!_typeList.ContainsKey("AccGotHigh"))
+				return;
 			Traverse.Create(_typeList["AccGotHigh"]).Method("RemoveEffect").GetValue();
 		}
 

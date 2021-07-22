@@ -15,43 +15,45 @@ using ExtensibleSaveFormat;
 
 using KKAPI;
 using KKAPI.Chara;
+using JetPack;
 
 namespace AAAPK
 {
 	public partial class AAAPK
 	{
 		internal static AAAPKController GetController(ChaControl _chaCtrl) => _chaCtrl?.gameObject?.GetComponent<AAAPKController>();
-		internal static CharaCustomFunctionController GetBoneController(ChaControl _chaCtrl) => _chaCtrl?.gameObject?.GetComponent(_typeList["BoneController"]) as CharaCustomFunctionController;
+		internal static CharaCustomFunctionController GetBoneController(ChaControl _chaCtrl) => _chaCtrl?.gameObject?.GetComponent<KKABMX.Core.BoneController>();
 
 		public partial class AAAPKController : CharaCustomFunctionController
 		{
 			internal int _currentCoordinateIndex => ChaControl.fileStatus.coordinateType;
 
 			internal bool _duringLoad = false;
-			internal List<ParentRule> ParentRules = new List<ParentRule>();
+			internal List<ParentRule> ParentRuleList = new List<ParentRule>();
 			internal HashSet<int> _triggerSlots = new HashSet<int>();
 			internal HashSet<int> _queueSlots = new HashSet<int>();
+			internal List<ParentRule> _rulesCache = new List<ParentRule>();
 
 			internal List<ChaFileAccessory.PartsInfo> _listPartsInfo = new List<ChaFileAccessory.PartsInfo>();
 			internal HashSet<int> _usedSlots = new HashSet<int>();
 
 			protected override void OnCardBeingSaved(GameMode currentGameMode)
 			{
-				if (ParentRules?.Count == 0)
+				if (ParentRuleList?.Count == 0)
 				{
 					SetExtendedData(null);
 					return;
 				}
 
 				PluginData _pluginData = new PluginData();
-				_pluginData.data.Add("ParentRules", MessagePackSerializer.Serialize(ParentRules));
+				_pluginData.data.Add("ParentRules", MessagePackSerializer.Serialize(ParentRuleList));
 				_pluginData.version = ExtDataVer;
 				SetExtendedData(_pluginData);
 			}
 
 			protected override void OnCoordinateBeingSaved(ChaFileCoordinate coordinate)
 			{
-				List<ParentRule> _data = ParentRules.Where(x => x.Coordinate == _currentCoordinateIndex).ToList().JsonClone<List<ParentRule>>();
+				List<ParentRule> _data = ListCoordinateRule().JsonClone<List<ParentRule>>();
 				if (_data?.Count == 0)
 				{
 					SetCoordinateExtendedData(coordinate, null);
@@ -69,7 +71,7 @@ namespace AAAPK
 			{
 				_duringLoad = true;
 
-				ParentRules.RemoveAll(x => x.Coordinate == _currentCoordinateIndex);
+				ParentRuleList.RemoveAll(x => x.Coordinate == _currentCoordinateIndex);
 				PluginData _pluginData = GetCoordinateExtendedData(coordinate);
 				if (_pluginData != null)
 				{
@@ -83,11 +85,12 @@ namespace AAAPK
 							if (_tempParentRules?.Count > 0)
 							{
 								_tempParentRules.ForEach(x => x.Coordinate = _currentCoordinateIndex);
-								ParentRules.AddRange(_tempParentRules);
+								ParentRuleList.AddRange(_tempParentRules);
 							}
 						}
 					}
 				}
+				RefreshCache();
 				base.OnCoordinateBeingLoaded(coordinate);
 			}
 
@@ -95,7 +98,7 @@ namespace AAAPK
 			{
 				_duringLoad = true;
 
-				ParentRules.Clear();
+				ParentRuleList.Clear();
 				PluginData _pluginData = GetExtendedData();
 				if (_pluginData != null)
 				{
@@ -107,10 +110,11 @@ namespace AAAPK
 						{
 							List<ParentRule> _tempParentRules = MessagePackSerializer.Deserialize<List<ParentRule>>((byte[]) _loadedParentRules);
 							if (_tempParentRules?.Count > 0)
-								ParentRules.AddRange(_tempParentRules);
+								ParentRuleList.AddRange(_tempParentRules);
 						}
 					}
 				}
+				RefreshCache();
 				base.OnReload(currentGameMode);
 			}
 
@@ -122,7 +126,8 @@ namespace AAAPK
 				if (_dstCoordinateIndex == _currentCoordinateIndex)
 				{
 					UpdatePartsInfoList();
-					StartCoroutine(InitCurOutfitTriggerInfoHack("AccessoriesCopiedHandler"));
+					RefreshCache();
+					StartCoroutine(ApplyParentRuleListHack("AccessoriesCopiedHandler"));
 				}
 			}
 
@@ -131,13 +136,17 @@ namespace AAAPK
 				CloneRule(_srcSlotIndex, _dstSlotIndex, _currentCoordinateIndex);
 
 				UpdatePartsInfoList();
-				StartCoroutine(InitCurOutfitTriggerInfoHack("AccessoryTransferredHandler"));
+				RefreshCache();
+				StartCoroutine(ApplyParentRuleListHack("AccessoryTransferredHandler"));
 			}
 
-			internal ParentRule GetSlotRule(int _slotIndex) => GetSlotRule(_currentCoordinateIndex, _slotIndex);
-			internal ParentRule GetSlotRule(int _coordinateIndex, int _slotIndex) => ParentRules.FirstOrDefault(x => x.Coordinate == _coordinateIndex && x.Slot == _slotIndex);
+			internal List<ParentRule> ListCoordinateRule() => ListCoordinateRule(_currentCoordinateIndex);
+			internal List<ParentRule> ListCoordinateRule(int _coordinateIndex) => ParentRuleList.Where(x => x.Coordinate == _coordinateIndex).ToList();
 
-			internal IEnumerator InitCurOutfitTriggerInfoHack(string _caller)
+			internal ParentRule GetSlotRule(int _slotIndex) => GetSlotRule(_currentCoordinateIndex, _slotIndex);
+			internal ParentRule GetSlotRule(int _coordinateIndex, int _slotIndex) => ParentRuleList.FirstOrDefault(x => x.Coordinate == _coordinateIndex && x.Slot == _slotIndex);
+
+			internal IEnumerator ApplyParentRuleListHack(string _caller)
 			{
 				if (_duringLoad)
 					yield break;
@@ -145,20 +154,21 @@ namespace AAAPK
 				yield return JetPack.Toolbox.WaitForEndOfFrame;
 				yield return JetPack.Toolbox.WaitForEndOfFrame;
 
-				InitCurOutfitTriggerInfo(_caller);
+				ApplyParentRuleList(_caller);
 			}
 
-			internal void InitCurOutfitTriggerInfo(string _caller)
+			internal void ApplyParentRuleList(string _caller)
 			{
 				if (_duringLoad) return;
 
 				AccGotHighRemoveEffect();
-				_triggerSlots = new HashSet<int>(ParentRules.Where(x => x.Coordinate == _currentCoordinateIndex).OrderBy(x => x.Slot).Select(x => x.Slot));
+				_triggerSlots = new HashSet<int>(ListCoordinateRule().OrderBy(x => x.Slot).Select(x => x.Slot));
+				if (_triggerSlots?.Count == 0) return;
 				DebugMsg(LogLevel.Info, $"[InitCurOutfitTriggerInfo][{_caller}][_currentCoordinateIndex: {_currentCoordinateIndex}][count: {_triggerSlots?.Count}]");
-				StartCoroutine(InitCurOutfitTriggerInfoCoroutine(_caller));
+				StartCoroutine(ApplyParentRuleListCoroutine());
 			}
 
-			internal IEnumerator InitCurOutfitTriggerInfoCoroutine(string _caller)
+			internal IEnumerator ApplyParentRuleListCoroutine()
 			{
 				if (_duringLoad)
 					yield break;
@@ -169,6 +179,7 @@ namespace AAAPK
 				_queueSlots = new HashSet<int>(_triggerSlots);
 
 				List<GameObject> _objAccessories = ListObjAccessory(ChaControl);
+				List<ParentRule> _rules = _rulesCache; //ListCoordinateRule();
 
 				foreach (int _slotIndex in _triggerSlots)
 				{
@@ -198,7 +209,7 @@ namespace AAAPK
 						continue;
 					}
 
-					ParentRule _rule = ParentRules.FirstOrDefault(x => x.Coordinate == _currentCoordinateIndex && x.Slot == _slotIndex);
+					ParentRule _rule = _rules.FirstOrDefault(x => x.Slot == _slotIndex);
 					if (_rule == null)
 					{
 						DebugMsg(LogLevel.Error, $"[InitCurOutfitTriggerInfoCoroutine][Slot{_slotIndex + 1:00}] rule not found");
@@ -260,47 +271,67 @@ namespace AAAPK
 				}
 			}
 
+			internal Transform GetParentNodeGameObject(ParentRule _rule)
+			{
+				if (_rule == null) return null;
+
+				Transform _parentNode = null;
+				if (_rule.ParentType == ParentType.Character)
+					_parentNode = ChaControl.transform.Find(_rule.ParentPath);
+				else if (_rule.ParentType == ParentType.Accessory)
+					_parentNode = GetObjAccessory(ChaControl, _rule.ParentSlot)?.transform?.Find(_rule.ParentPath);
+				/*
+				else if (_rule.ParentType == ParentType.Clothing)
+					_parentNode = ChaControl.objClothes.ElementAtOrDefault(_rule.ParentSlot)?.transform?.Find(_rule.ParentPath);
+				*/
+				else if (_rule.ParentType == ParentType.Hair)
+					_parentNode = ChaControl.objHair.ElementAtOrDefault(_rule.ParentSlot)?.transform?.Find(_rule.ParentPath);
+
+				return _parentNode;
+			}
+
 			internal void CloneRule(int _srcSlotIndex, int _dstSlotIndex) => CloneRule(_srcSlotIndex, _dstSlotIndex, _currentCoordinateIndex, _currentCoordinateIndex);
 			internal void CloneRule(int _srcSlotIndex, int _dstSlotIndex, int _coordinateIndex) => CloneRule(_srcSlotIndex, _dstSlotIndex, _coordinateIndex, _coordinateIndex);
 			internal void CloneRule(int _srcSlotIndex, int _dstSlotIndex, int _srcCoordinateIndex, int _dstCoordinateIndex)
 			{
-				ParentRules.RemoveAll(x => x.Coordinate == _dstCoordinateIndex && x.Slot == _dstSlotIndex);
-				ParentRule _rule = ParentRules.Where(x => x.Coordinate == _srcCoordinateIndex && x.Slot == _srcSlotIndex).FirstOrDefault().JsonClone<ParentRule>();
+				ParentRuleList.RemoveAll(x => x.Coordinate == _dstCoordinateIndex && x.Slot == _dstSlotIndex);
+				ParentRule _rule = GetSlotRule(_srcCoordinateIndex, _srcSlotIndex).JsonClone<ParentRule>();
 				if (_rule == null) return;
 				_rule.Coordinate = _dstCoordinateIndex;
 				_rule.Slot = _dstSlotIndex;
-				ParentRules.Add(_rule);
+				ParentRuleList.Add(_rule);
 			}
 
 			internal void MoveRule(int _srcSlotIndex, int _dstSlotIndex) => MoveRule(_srcSlotIndex, _dstSlotIndex, _currentCoordinateIndex);
 			internal void MoveRule(int _srcSlotIndex, int _dstSlotIndex, int _coordinateIndex)
 			{
-				ParentRules.RemoveAll(x => x.Coordinate == _coordinateIndex && x.Slot == _dstSlotIndex);
-				ParentRule _rule = ParentRules.Where(x => x.Coordinate == _coordinateIndex && x.Slot == _srcSlotIndex).FirstOrDefault().JsonClone<ParentRule>();
+				ParentRuleList.RemoveAll(x => x.Coordinate == _coordinateIndex && x.Slot == _dstSlotIndex);
+				ParentRule _rule = GetSlotRule(_coordinateIndex, _srcSlotIndex).JsonClone<ParentRule>();
 				RemoveRule(_coordinateIndex, _srcSlotIndex);
 				if (_rule != null)
 				{
 					_rule.Slot = _dstSlotIndex;
-					ParentRules.Add(_rule);
+					ParentRuleList.Add(_rule);
 				}
-				foreach (ParentRule i in ParentRules.Where(x => x.Coordinate == _coordinateIndex && x.ParentType == ParentType.Accessory && x.ParentSlot == _srcSlotIndex).ToList())
+				foreach (ParentRule i in ParentRuleList.Where(x => x.Coordinate == _coordinateIndex && x.ParentType == ParentType.Accessory && x.ParentSlot == _srcSlotIndex).ToList())
 					i.ParentSlot = _dstSlotIndex;
 			}
 
 			internal void RemoveRule(int _slotIndex) => RemoveRule(_currentCoordinateIndex, _slotIndex);
 			internal void RemoveRule(int _coordinateIndex, int _slotIndex)
 			{
-				ParentRules.RemoveAll(x => x.Coordinate == _coordinateIndex && x.Slot == _slotIndex);
+				ParentRuleList.RemoveAll(x => x.Coordinate == _coordinateIndex && x.Slot == _slotIndex);
 			}
 
 			internal void ResetRules()
 			{
-				ParentRules.RemoveAll(x => x.Coordinate == _currentCoordinateIndex);
+				ParentRuleList.RemoveAll(x => x.Coordinate == _currentCoordinateIndex);
+				RefreshCache();
 			}
 
 			internal void ExportRules()
 			{
-				List<ParentRule> _data = ParentRules.Where(x => x.Coordinate == _currentCoordinateIndex).OrderBy(x => x.Slot).ToList().JsonClone<List<ParentRule>>();
+				List<ParentRule> _data = ListCoordinateRule().OrderBy(x => x.Slot).ToList().JsonClone<List<ParentRule>>();
 				if (_data?.Count == 0)
 				{
 					_logger.LogMessage($"[ExportRules] no rule to export");
@@ -332,16 +363,22 @@ namespace AAAPK
 				int _skipped = 0;
 				foreach (ParentRule _rule in _data)
 				{
-					if (ParentRules.Any(x => x.Coordinate == _currentCoordinateIndex && x.Slot == _rule.Slot))
+					if (ParentRuleList.Any(x => x.Coordinate == _currentCoordinateIndex && x.Slot == _rule.Slot))
 					{
 						_skipped++;
 						continue;
 					}
 					_rule.Coordinate = _currentCoordinateIndex;
-					ParentRules.Add(_rule);
+					ParentRuleList.Add(_rule);
 				}
 
 				_logger.LogMessage($"[ImportRules] {_data?.Count - _skipped} rule(s) imported, {_skipped} rule(s) skipped");
+				RefreshCache();
+			}
+
+			internal void RefreshCache()
+			{
+				_rulesCache = ListCoordinateRule().JsonClone<List<ParentRule>>();
 			}
 		}
 

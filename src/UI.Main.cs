@@ -1,6 +1,5 @@
 ﻿using System;
 using System.Collections;
-using System.Collections.Generic;
 using System.Linq;
 
 using UnityEngine;
@@ -40,11 +39,22 @@ namespace AAAPK
 		{
 			internal void RefreshSlotInfo()
 			{
-				_currentSlotRule = _pluginCtrl.ParentRules.Where(x => x.Coordinate == _currentCoordinateIndex && x.Slot == _currentSlotIndex).FirstOrDefault();
+				_currentSlotRule = _pluginCtrl.GetSlotRule(_currentCoordinateIndex, _currentSlotIndex);
 				GetParentNodeGameObject();
 				SetSelectedBone(_selectedParentGameObject);
 				//_openedNodes.Clear();
 				_needRefreshSlotInfo = false;
+			}
+
+			private IEnumerator ScrollToParentRect()
+			{
+				yield return JetPack.Toolbox.WaitForEndOfFrame;
+				yield return JetPack.Toolbox.WaitForEndOfFrame;
+
+				_logger.LogWarning($"[Warp][position]{_selectedParentRect.position.x}, {_selectedParentRect.position.y}");
+				float _posX = _selectedParentRect.position.x < 120 ? 0 : _selectedParentRect.position.x - 120;
+				float _posY = _selectedParentRect.position.y < 200 ? 0 : _selectedParentRect.position.y - 200;
+				_boneScrollPosition = new Vector2(_posX, _posY);
 			}
 
 			private void DrawMakerWindow(int id)
@@ -98,7 +108,12 @@ namespace AAAPK
 
 							GetParentNodeGameObject();
 							if (_selectedParentGameObject != null)
+							{
 								OpenParentsOf(_selectedParentGameObject);
+								DebugMsg(LogLevel.Info, $"[Warp][{_selectedParentPath}]");
+
+								StartCoroutine(ScrollToParentRect());
+							}
 						}
 						GUI.enabled = true;
 
@@ -112,6 +127,7 @@ namespace AAAPK
 							SetSelectedParent(null);
 							SetSelectedBone(null);
 							_currentSlotRule = null;
+							_pluginCtrl.RefreshCache();
 
 							if (_currentSlotGameObject == null) return;
 
@@ -120,7 +136,8 @@ namespace AAAPK
 
 							string _parentKey = _part.parentKey;
 							GameObject _parentNode = _chaCtrl.GetReferenceInfo((ChaReference.RefObjKey) Enum.Parse(typeof(ChaReference.RefObjKey), _parentKey));
-							_currentSlotGameObject.transform.SetParent(_parentNode.transform, false);
+							//_currentSlotGameObject.transform.SetParent(_parentNode.transform, false);
+							ResetParentWithScale(_parentNode);
 						}
 						GUI.enabled = true;
 						if (_currentSlotRule != null)
@@ -179,8 +196,6 @@ namespace AAAPK
 
 							_accScrollPosition = GUILayout.BeginScrollView(_accScrollPosition, GUILayout.Height(50));
 							{
-								//List<ListInfoComponent> _listInfos = _chaCtrl.GetComponentsInChildren<ListInfoComponent>(true)?.Where(x => x != null && x.gameObject != null && x.gameObject.name.StartsWith("ca_slot")).OrderBy(x => x.gameObject.name).ToList();
-
 								if (_pluginCtrl._usedSlots.Count > 0)
 								{
 									GUILayout.BeginHorizontal(GUILayout.ExpandWidth(false));
@@ -189,10 +204,7 @@ namespace AAAPK
 									{
 										if (_slotIndex == _currentSlotIndex)
 											continue;
-										/*
-										ListInfoComponent _cmp = _listInfos?.FirstOrDefault(x => x.gameObject.name == $"ca_slot{_slotIndex:00}");
-										if (GUILayout.Button(new GUIContent($"{_slotIndex + 1:00}", $"{_cmp.data.Name}"), _gloButtonS))
-										*/
+
 										if (GUILayout.Button(new GUIContent($"{_slotIndex + 1:00}", $"ca_slot{_slotIndex:00}"), _gloButtonS))
 											_searchTerm = $"ca_slot{_slotIndex:00}";
 									}
@@ -225,9 +237,11 @@ namespace AAAPK
 								_pluginCtrl.RemoveRule(_currentSlotIndex);
 								_currentSlotRule = null;
 
-								ParentRule _rule = new ParentRule();
-								_rule.Coordinate = _currentCoordinateIndex;
-								_rule.Slot = _currentSlotIndex;
+								ParentRule _rule = new ParentRule
+								{
+									Coordinate = _currentCoordinateIndex,
+									Slot = _currentSlotIndex
+								};
 
 								string _fullPath = _selectedBonePath;
 
@@ -259,11 +273,13 @@ namespace AAAPK
 									int _index = _fullPath.LastIndexOf(_name) + _name.Length;
 									_rule.ParentPath = _fullPath.Substring(_index);
 
-									_pluginCtrl.ParentRules.Add(_rule);
+									_pluginCtrl.ParentRuleList.Add(_rule);
+									_pluginCtrl.RefreshCache();
 
 									_currentSlotRule = _rule;
 									SetSelectedParent(_selectedBoneGameObject);
-									MoveObjectToPlace();
+									//MoveObjectToPlace();
+									SetParentWithScale();
 									return;
 								}
 
@@ -276,11 +292,13 @@ namespace AAAPK
 									int _index = _fullPath.LastIndexOf(_name) + _name.Length;
 									_rule.ParentPath = _fullPath.Substring(_index);
 
-									_pluginCtrl.ParentRules.Add(_rule);
+									_pluginCtrl.ParentRuleList.Add(_rule);
+									_pluginCtrl.RefreshCache();
 
 									_currentSlotRule = _rule;
 									SetSelectedParent(_selectedBoneGameObject);
-									MoveObjectToPlace();
+									//MoveObjectToPlace();
+									SetParentWithScale();
 									return;
 								}
 
@@ -289,11 +307,13 @@ namespace AAAPK
 									_rule.ParentSlot = -1;
 									_rule.ParentPath = _fullPath;
 
-									_pluginCtrl.ParentRules.Add(_rule);
+									_pluginCtrl.ParentRuleList.Add(_rule);
+									_pluginCtrl.RefreshCache();
 
 									_currentSlotRule = _rule;
 									SetSelectedParent(_selectedBoneGameObject);
-									MoveObjectToPlace();
+									//MoveObjectToPlace();
+									SetParentWithScale();
 								}
 							}
 						}
@@ -307,18 +327,29 @@ namespace AAAPK
 
 					GUILayout.BeginHorizontal(GUI.skin.box);
 					{
+						_cfgKeepPos = GUILayout.Toggle(_cfgKeepPos, new GUIContent(" keep position", "Preserve position on changing parent"));
+						_cfgKeepRot = GUILayout.Toggle(_cfgKeepRot, new GUIContent(" keep rotation", "Preserve rotation on changing parent"));
+						GUILayout.FlexibleSpace();
+					}
+					GUILayout.EndHorizontal();
+
+					GUILayout.BeginHorizontal(GUI.skin.box);
+					{
 #if DEBUG
 						if (GUILayout.Button("Panic", _gloButtonM))
 						{
 							foreach (ListInfoComponent _cmp in _chaCtrl.GetComponentsInChildren<ListInfoComponent>(true))
 								Destroy(_cmp?.gameObject);
 						}
+						if (GUILayout.Button(new GUIContent("Refresh", "Refresh Dynamic Bone"), _gloButtonM))
+						{
+							Traverse.Create(GetBoneController(_chaCtrl)).Property("NeedsBaselineUpdate").SetValue(true);
+						}
 #endif
-						if (GUILayout.Button("Refresh", _gloButtonM))
+						if (GUILayout.Button(new GUIContent("Refresh", "Refresh coordinate"), _gloButtonM))
 						{
 							RefreshCoordinate();
 						}
-
 						if (GUILayout.Button(new GUIContent("DB", "List hair and clothing (exclude accessories) dynamic bones to console"), _gloButtonM))
 						{
 							foreach (DynamicBone _cmp in _chaCtrl.GetComponentsInChildren<DynamicBone>().Where(x => x.m_Root != null && (bool) !x.gameObject?.name.StartsWith("ca_slot")).ToList())
@@ -336,6 +367,32 @@ namespace AAAPK
 				GUILayout.EndVertical();
 
 				GUI.DragWindow();
+			}
+
+			internal void SetParentWithScale()
+			{
+				AccGotHighRemoveEffect();
+
+				if (_selectedParentGameObject == null)
+					return;
+
+				GameObject _ca_slot = GetObjAccessory(_chaCtrl, _currentSlotIndex);
+				ChangeParent(_chaCtrl, _currentSlotIndex, _ca_slot, _selectedParentGameObject.transform, _keepPos: _cfgKeepPos, _keepRot: _cfgKeepRot);
+				CustomBase.Instance.updateCustomUI = true;
+				Traverse.Create(GetBoneController(_chaCtrl)).Property("NeedsBaselineUpdate").SetValue(true);
+			}
+
+			internal void ResetParentWithScale(GameObject _parent)
+			{
+				AccGotHighRemoveEffect();
+
+				if (_parent == null)
+					return;
+
+				GameObject _ca_slot = GetObjAccessory(_chaCtrl, _currentSlotIndex);
+				ChangeParent(_chaCtrl, _currentSlotIndex, _ca_slot, _parent.transform, _keepPos: _cfgKeepPos, _keepRot: _cfgKeepRot, _reset: true);
+				CustomBase.Instance.updateCustomUI = true;
+				Traverse.Create(GetBoneController(_chaCtrl)).Property("NeedsBaselineUpdate").SetValue(true);
 			}
 
 			internal void MoveObjectToPlace()
@@ -393,6 +450,9 @@ namespace AAAPK
 						if (GUILayout.Button(_gameObject.name, GUILayout.ExpandWidth(false)))
 							SetSelectedBone(_gameObject);
 					}
+
+					if (_selectedParentGameObject == _gameObject && Event.current.type == EventType.Repaint)
+						_selectedParentRect = GUILayoutUtility.GetLastRect();
 
 					GUILayout.EndHorizontal();
 					GUI.color = _color;

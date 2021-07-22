@@ -19,7 +19,7 @@ namespace AAAPK
 				_windowRectID = GUIUtility.GetControlID(FocusType.Passive);
 				_windowPos.x = _cfgMakerWinX.Value;
 				_windowPos.y = _cfgMakerWinY.Value;
-				_windowBGtex = MakeTex((int) _windowSize.x, (int) _windowSize.y + 10, _windowBG);
+				_windowBGtex = JetPack.UI.MakePlainTex((int) _windowSize.x, (int) _windowSize.y + 10, _windowBG);
 				_passThrough = _cfgDragPass.Value;
 				_windowRect = new Rect(_windowPos.x, _windowPos.y, _windowSize.x, _windowSize.y);
 				ChangeRes();
@@ -59,6 +59,11 @@ namespace AAAPK
 
 			private string _selectedBonePath = "";
 			private string _selectedParentPath = "";
+
+			private Rect _selectedParentRect;
+
+			private bool _cfgKeepPos = true;
+			private bool _cfgKeepRot = true;
 
 			internal ChaControl _chaCtrl => CustomBase.Instance?.chaCtrl;
 			internal AAAPKController _pluginCtrl => _chaCtrl?.GetComponent<AAAPKController>();
@@ -131,17 +136,8 @@ namespace AAAPK
 					_hasFocus = false;
 
 				//if (_hasFocus && GetResizedRect(_windowRect).Contains(new Vector2(Input.mousePosition.x, Screen.height - Input.mousePosition.y)))
-				if ((!_passThrough || _hasFocus) && GetResizedRect(_windowRect).Contains(new Vector2(Input.mousePosition.x, Screen.height - Input.mousePosition.y)))
+				if ((!_passThrough || _hasFocus) && JetPack.UI.GetResizedRect(_windowRect).Contains(new Vector2(Input.mousePosition.x, Screen.height - Input.mousePosition.y)))
 					Input.ResetInputAxes();
-			}
-
-			// https://bensilvis.com/unity3d-auto-scale-gui/
-			private Rect GetResizedRect(Rect _rect)
-			{
-				Vector2 _position = GUI.matrix.MultiplyVector(new Vector2(_rect.x, _rect.y));
-				Vector2 _size = GUI.matrix.MultiplyVector(new Vector2(_rect.width, _rect.height));
-
-				return new Rect(_position.x, _position.y, _size.x, _size.y);
 			}
 
 			private void OnEnable()
@@ -198,20 +194,6 @@ namespace AAAPK
 			private void CloseWindow()
 			{
 				enabled = false;
-			}
-
-			private Texture2D MakeTex(int _width, int _height, Color _color)
-			{
-				Color[] pix = new Color[_width * _height];
-
-				for (int i = 0; i < pix.Length; i++)
-					pix[i] = _color;
-
-				Texture2D result = new Texture2D(_width, _height);
-				result.SetPixels(pix);
-				result.Apply();
-
-				return result;
 			}
 		}
 	}

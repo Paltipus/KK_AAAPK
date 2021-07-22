@@ -1,21 +1,14 @@
-using ParadoxNotion.Serialization;
+using ChaCustom;
 
 namespace AAAPK
 {
 	public static partial class Extensions
 	{
-		public static T JsonClone<T>(this object _self)
+		public static int SlotIndex(this CvsAccessory _self)
 		{
 			if (_self == null)
-				return default(T);
-			string _json = JSONSerializer.Serialize(_self.GetType(), _self);
-			return (T) JSONSerializer.Deserialize(_self.GetType(), _json);
+				return -1;
+			return _self.nSlotNo;
 		}
-
-		public static int SlotIndex(this ChaCustom.CvsAccessory _self)
-        {
-			if (_self == null) return -1;
-			return (int) _self.slotNo;
-        }
 	}
 }
