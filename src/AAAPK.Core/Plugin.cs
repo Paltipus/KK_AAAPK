@@ -28,8 +28,8 @@ namespace AAAPK
 	public partial class AAAPK : BaseUnityPlugin
 	{
 		public const string GUID = "madevil.kk.AAAPK";
-		public const string Name = "Additional Accessory Advanced Parent Knockoff";
-		public const string Version = "1.1.0.0";
+		public const string Name = "AAAPK";
+		public const string Version = "1.2.0.0";
 
 		internal static ManualLogSource _logger;
 		internal static Harmony _hooksMaker;
@@ -49,6 +49,7 @@ namespace AAAPK
 		public const int ExtDataVer = 1;
 		internal static Dictionary<string, Type> _typeList = new Dictionary<string, Type>();
 		internal static Type ChaAccessoryClothes = null;
+		internal static Type DynamicBoneEditorUI = null;
 
 		private void Awake()
 		{
@@ -90,7 +91,7 @@ namespace AAAPK
 		private void Start()
 		{
 			CharacterApi.RegisterExtraBehaviour<AAAPKController>(GUID);
-			Harmony _hooksInstance = Harmony.CreateAndPatchAll(typeof(Hooks));
+			Harmony _hooksInstance = Harmony.CreateAndPatchAll(typeof(Hooks), GUID);
 
 			{
 				BaseUnityPlugin _instance = JetPack.Toolbox.GetPluginInstance("madevil.kk.MovUrAcc");
@@ -106,8 +107,6 @@ namespace AAAPK
 
 			{
 				BaseUnityPlugin _instance = JetPack.Toolbox.GetPluginInstance("com.deathweasel.bepinex.materialeditor");
-				Type MaterialEditorCharaController = _instance.GetType().Assembly.GetType("KK_Plugins.MaterialEditor.MaterialEditorCharaController");
-				_hooksInstance.Patch(MaterialEditorCharaController.GetMethod("CorrectTongue", AccessTools.all), postfix: new HarmonyMethod(typeof(Hooks), nameof(Hooks.MaterialEditorCharaController_CorrectTongue_Postfix)));
 				Type MaterialAPI = _instance.GetType().Assembly.GetType("MaterialEditorAPI.MaterialAPI");
 				_hooksInstance.Patch(MaterialAPI.GetMethod("GetRendererList", AccessTools.all, null, new[] { typeof(GameObject) }, null), postfix: new HarmonyMethod(typeof(Hooks), nameof(Hooks.MaterialAPI_GetRendererList_Postfix)));
 			}
@@ -116,8 +115,9 @@ namespace AAAPK
 				BaseUnityPlugin _instance = JetPack.Toolbox.GetPluginInstance("com.deathweasel.bepinex.dynamicboneeditor");
 				if (_instance != null)
 				{
-					Type UI = _instance.GetType().Assembly.GetType("KK_Plugins.DynamicBoneEditor.UI");
-					_hooksInstance.Patch(UI.GetMethod("ShowUI", AccessTools.all, null, new[] { typeof(int) }, null), transpiler: new HarmonyMethod(typeof(Hooks), nameof(Hooks.UI_ShowUI_Transpiler)));
+					DynamicBoneEditorUI = _instance.GetType().Assembly.GetType("KK_Plugins.DynamicBoneEditor.UI");
+					_hooksInstance.Patch(DynamicBoneEditorUI.GetMethod("ShowUI", AccessTools.all, null, new[] { typeof(int) }, null), transpiler: new HarmonyMethod(typeof(Hooks), nameof(Hooks.UI_ShowUI_Transpiler)));
+					_hooksInstance.Patch(DynamicBoneEditorUI.GetMethod("ToggleButtonVisibility", AccessTools.all), prefix: new HarmonyMethod(typeof(Hooks), nameof(Hooks.UI_ToggleButtonVisibility_Prefix)));
 
 					Type CharaController = _instance.GetType().Assembly.GetType("KK_Plugins.DynamicBoneEditor.CharaController");
 					//_hooksInstance.Patch(AccessTools.Method(CharaController.GetNestedType("<ApplyData>d__12", System.Reflection.BindingFlags.NonPublic), "MoveNext"), transpiler: new HarmonyMethod(typeof(Hooks), nameof(Hooks.CharaController_ApplyData_Transpiler)));
@@ -198,6 +198,10 @@ namespace AAAPK
 					_charaConfigWindow.enabled = false;
 				}
 			};
+
+			JetPack.Chara.OnChangeCoordinateType += (_sender, _args) => OnChangeCoordinateType(_args);
+
+			JetPack.MaterialEditor.OnDataApply += (_sender, _args) => OnDataApply(_args);
 		}
 
 		internal static IEnumerator ToggleButtonVisibility()

@@ -8,7 +8,8 @@ using UnityEngine;
 
 using HarmonyLib;
 
-using KKAPI.Chara;
+using KKAPI.Maker;
+using KKAPI.Maker.UI;
 
 namespace AAAPK
 {
@@ -16,37 +17,6 @@ namespace AAAPK
 	{
 		internal static partial class Hooks
 		{
-			[HarmonyPrefix, HarmonyPatch(typeof(ChaControl), nameof(ChaControl.ChangeCoordinateType), new[] { typeof(ChaFileDefine.CoordinateType), typeof(bool) })]
-			private static void ChaControl_ChangeCoordinateType_Prefix(ChaControl __instance)
-			{
-				AAAPKController _pluginCtrl = GetController(__instance);
-				if (_pluginCtrl == null) return;
-
-				_pluginCtrl._triggerSlots.Clear();
-				_pluginCtrl._queueSlots.Clear();
-				_pluginCtrl._rulesCache.Clear();
-			}
-
-			[HarmonyPostfix, HarmonyPatch(typeof(ChaControl), nameof(ChaControl.ChangeCoordinateType), new[] { typeof(ChaFileDefine.CoordinateType), typeof(bool) })]
-			private static void ChaControl_ChangeCoordinateType_Postfix(ChaControl __instance)
-			{
-				AAAPKController _pluginCtrl = GetController(__instance);
-				if (_pluginCtrl == null) return;
-
-				_pluginCtrl.UpdatePartsInfoList();
-				_pluginCtrl.RefreshCache();
-				_pluginCtrl.ApplyParentRuleList("ChangeCoordinateType");
-			}
-
-			internal static void MaterialEditorCharaController_CorrectTongue_Postfix(CharaCustomFunctionController __instance)
-			{
-				AAAPKController _pluginCtrl = GetController(__instance.ChaControl);
-				if (_pluginCtrl == null) return;
-
-				_pluginCtrl._duringLoad = false;
-				_pluginCtrl.ApplyParentRuleList("MaterialEditorCharaController_CorrectTongue_Postfix");
-			}
-
 			internal static void MaterialAPI_GetRendererList_Postfix(ref IEnumerable<Renderer> __result, GameObject gameObject)
 			{
 				if (gameObject == null)
@@ -91,7 +61,7 @@ namespace AAAPK
 
 			internal static DynamicBone[] CharaController_ApplyData_Method(DynamicBone[] _getFromStack)
 			{
-				List<DynamicBone> _result = _getFromStack?.ToList() ?? new List<DynamicBone>();
+				List<DynamicBone> _result = _getFromStack == null ? new List<DynamicBone>() : _getFromStack.Where(x => x.m_Root != null).ToList();
 
 				if (_result?.Count == 0)
 					return _result.ToArray();
@@ -107,6 +77,8 @@ namespace AAAPK
 					if (_remove?.Count > 0)
 						_result.RemoveAll(x => _remove.Contains(x));
 				}
+				if (_result?.Count > 0)
+					_result.RemoveAll(x => x.m_Root.name.StartsWith("cf_j_sk_") || x.m_Root.name.StartsWith("cf_d_sk_"));
 
 				return _result.ToArray();
 			}
@@ -155,9 +127,45 @@ namespace AAAPK
 						if (_remove?.Count > 0)
 							_result.RemoveAll(x => _remove.Contains(x));
 					}
+					if (_result?.Count > 0)
+						_result.RemoveAll(x => x.m_Root.name.StartsWith("cf_j_sk_") || x.m_Root.name.StartsWith("cf_d_sk_"));
 				}
 
 				return _result;
+			}
+
+			internal static bool UI_ToggleButtonVisibility_Prefix()
+			{
+				if (!MakerAPI.InsideMaker)
+					return true;
+
+				MakerButton DynamicBoneEditorButton = Traverse.Create(DynamicBoneEditorUI).Field("DynamicBoneEditorButton").GetValue<MakerButton>();
+
+				if (DynamicBoneEditorButton == null)
+					return true;
+
+				GameObject _ca_slot = GetObjAccessory(ChaCustom.CustomBase.Instance.chaCtrl, AccessoriesApi.SelectedMakerAccSlot);
+				if (_ca_slot == null)
+					return true;
+
+				List<DynamicBone> _result = _ca_slot.GetComponentsInChildren<DynamicBone>(true)?.Where(x => x.m_Root != null).ToList();
+				if (_result?.Count > 0)
+				{
+					foreach (GameObject _gameObject in ListObjAccessory(_ca_slot))
+					{
+						if (_gameObject == _ca_slot) continue;
+						List<DynamicBone> _remove = _gameObject.GetComponentsInChildren<DynamicBone>(true)?.Where(x => x.m_Root != null).ToList();
+
+						if (_remove?.Count > 0)
+							_result.RemoveAll(x => _remove.Contains(x));
+					}
+					if (_result?.Count > 0)
+						_result.RemoveAll(x => x.m_Root.name.StartsWith("cf_j_sk_") || x.m_Root.name.StartsWith("cf_d_sk_"));
+				}
+
+				DynamicBoneEditorButton.Visible.OnNext(_result?.Count > 0);
+
+				return false;
 			}
 		}
 	}

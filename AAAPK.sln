@@ -3,7 +3,9 @@ Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio Version 16
 VisualStudioVersion = 16.0.31129.286
 MinimumVisualStudioVersion = 10.0.40219.1
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "AAAPK", "src\AAAPK.csproj", "{B3730422-288C-47C4-ADA3-0DC609388DF5}"
+Project("{D954291E-2A0B-460D-934E-DC6B0785DB48}") = "AAAPK.Core", "src\AAAPK.Core\AAAPK.Core.shproj", "{5A8FDB27-FFCA-4A77-AB0F-AFDEF9A034ED}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "AAAPK.KK", "src\AAAPK.KK\AAAPK.KK.csproj", "{B3730422-288C-47C4-ADA3-0DC609388DF5}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution

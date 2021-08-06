@@ -28,7 +28,7 @@ namespace AAAPK
 		{
 			internal int _currentCoordinateIndex => ChaControl.fileStatus.coordinateType;
 
-			internal bool _duringLoad = false;
+			internal bool _duringLoadChange = false;
 			internal List<ParentRule> ParentRuleList = new List<ParentRule>();
 			internal HashSet<int> _triggerSlots = new HashSet<int>();
 			internal HashSet<int> _queueSlots = new HashSet<int>();
@@ -69,7 +69,7 @@ namespace AAAPK
 
 			protected override void OnCoordinateBeingLoaded(ChaFileCoordinate coordinate)
 			{
-				_duringLoad = true;
+				_duringLoadChange = true;
 
 				ParentRuleList.RemoveAll(x => x.Coordinate == _currentCoordinateIndex);
 				PluginData _pluginData = GetCoordinateExtendedData(coordinate);
@@ -96,7 +96,7 @@ namespace AAAPK
 
 			protected override void OnReload(GameMode currentGameMode)
 			{
-				_duringLoad = true;
+				_duringLoadChange = true;
 
 				ParentRuleList.Clear();
 				PluginData _pluginData = GetExtendedData();
@@ -148,7 +148,7 @@ namespace AAAPK
 
 			internal IEnumerator ApplyParentRuleListHack(string _caller)
 			{
-				if (_duringLoad)
+				if (_duringLoadChange)
 					yield break;
 
 				yield return JetPack.Toolbox.WaitForEndOfFrame;
@@ -159,18 +159,18 @@ namespace AAAPK
 
 			internal void ApplyParentRuleList(string _caller)
 			{
-				if (_duringLoad) return;
+				if (_duringLoadChange) return;
 
 				AccGotHighRemoveEffect();
 				_triggerSlots = new HashSet<int>(ListCoordinateRule().OrderBy(x => x.Slot).Select(x => x.Slot));
 				if (_triggerSlots?.Count == 0) return;
-				DebugMsg(LogLevel.Info, $"[InitCurOutfitTriggerInfo][{_caller}][_currentCoordinateIndex: {_currentCoordinateIndex}][count: {_triggerSlots?.Count}]");
+				DebugMsg(LogLevel.Info, $"[ApplyParentRuleList][{_caller}][_currentCoordinateIndex: {_currentCoordinateIndex}][count: {_triggerSlots?.Count}]");
 				StartCoroutine(ApplyParentRuleListCoroutine());
 			}
 
 			internal IEnumerator ApplyParentRuleListCoroutine()
 			{
-				if (_duringLoad)
+				if (_duringLoadChange)
 					yield break;
 
 				yield return JetPack.Toolbox.WaitForEndOfFrame;
@@ -197,14 +197,14 @@ namespace AAAPK
 
 					if (_ca_slot == null)
 					{
-						DebugMsg(LogLevel.Error, $"[InitCurOutfitTriggerInfoCoroutine][Slot{_slotIndex + 1:00}] GameObject not found");
+						DebugMsg(LogLevel.Error, $"[ApplyParentRuleListCoroutine][Slot{_slotIndex + 1:00}] GameObject not found");
 						_queueSlots.Remove(_slotIndex);
 						continue;
 					}
 
 					if (_ca_slot.GetComponent(ChaAccessoryClothes) != null)
 					{
-						DebugMsg(LogLevel.Error, $"[InitCurOutfitTriggerInfoCoroutine][Slot{_slotIndex + 1:00}] Cannot use this function on Accessory Clothes");
+						DebugMsg(LogLevel.Error, $"[ApplyParentRuleListCoroutine][Slot{_slotIndex + 1:00}] Cannot use this function on Accessory Clothes");
 						_queueSlots.Remove(_slotIndex);
 						continue;
 					}
@@ -212,7 +212,7 @@ namespace AAAPK
 					ParentRule _rule = _rules.FirstOrDefault(x => x.Slot == _slotIndex);
 					if (_rule == null)
 					{
-						DebugMsg(LogLevel.Error, $"[InitCurOutfitTriggerInfoCoroutine][Slot{_slotIndex + 1:00}] rule not found");
+						DebugMsg(LogLevel.Error, $"[ApplyParentRuleListCoroutine][Slot{_slotIndex + 1:00}] rule not found");
 						_queueSlots.Remove(_slotIndex);
 						continue;
 					}
@@ -225,7 +225,7 @@ namespace AAAPK
 						GameObject _parentNodeGameObject = _objAccessories.FirstOrDefault(x => x.name == $"ca_slot{_rule.ParentSlot:00}");
 						if (_parentNodeGameObject?.GetComponent(ChaAccessoryClothes) != null)
 						{
-							DebugMsg(LogLevel.Error, $"[InitCurOutfitTriggerInfoCoroutine][Slot{_slotIndex + 1:00}] Cannot use this function on Accessory Clothes");
+							DebugMsg(LogLevel.Error, $"[ApplyParentRuleListCoroutine][Slot{_slotIndex + 1:00}] Cannot use this function on Accessory Clothes");
 							_queueSlots.Remove(_slotIndex);
 							continue;
 						}
@@ -237,7 +237,7 @@ namespace AAAPK
 					if (_parentNode == null)
 					{
 						_logger.LogMessage($"Slot{_slotIndex + 1:00} parent node not found [{_rule.ParentType}][{_rule.ParentSlot}]");
-						_logger.LogError($"[InitCurOutfitTriggerInfoCoroutine][Slot{_slotIndex + 1:00}] parent node not found\n{JSONSerializer.Serialize(_rule.GetType(), _rule, true)}");
+						_logger.LogError($"[ApplyParentRuleListCoroutine][Slot{_slotIndex + 1:00}] parent node not found\n{JSONSerializer.Serialize(_rule.GetType(), _rule, true)}");
 						_queueSlots.Remove(_slotIndex);
 						continue;
 					}
@@ -252,7 +252,7 @@ namespace AAAPK
 					_ca_slot.transform.localPosition = Vector3.zero;
 					_ca_slot.transform.localEulerAngles = Vector3.zero;
 					_ca_slot.transform.localScale = Vector3.one;
-					DebugMsg(LogLevel.Info, $"[InitCurOutfitTriggerInfoCoroutine][Slot{_slotIndex + 1:00}][Parent: {_rule.ParentType} {_rule.ParentSlot}] moved");
+					DebugMsg(LogLevel.Info, $"[ApplyParentRuleListCoroutine][Slot{_slotIndex + 1:00}][Parent: {_rule.ParentType} {_rule.ParentSlot}] moved");
 
 					_queueSlots.Remove(_slotIndex);
 				}

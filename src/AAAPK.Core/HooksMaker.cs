@@ -147,6 +147,8 @@ namespace AAAPK
 				AAAPKController _pluginCtrl = GetController(_chaCtrl);
 				if (_pluginCtrl == null) return;
 
+				if (_pluginCtrl._duringLoadChange) return;
+
 				if (_pluginCtrl.ParentRuleList.Any(x => x.ParentType == ParentType.Accessory && x.ParentSlot == __instance.SlotIndex()))
 				{
 					List<GameObject> _objAccessories = ListObjAccessory(_chaCtrl);
