@@ -350,9 +350,10 @@ namespace AAAPK
 						{
 							RefreshCoordinate();
 						}
-						if (GUILayout.Button(new GUIContent("DB", "List hair and clothing (exclude accessories) dynamic bones to console"), _gloButtonM))
+
+						if (GUILayout.Button(new GUIContent("List DB", "List hair and clothing (exclude acc) DB to console"), _gloButtonM))
 						{
-							foreach (DynamicBone _cmp in _chaCtrl.GetComponentsInChildren<DynamicBone>().Where(x => x.m_Root != null && (bool) !x.gameObject?.name.StartsWith("ca_slot")).ToList())
+							foreach (DynamicBone _cmp in _chaCtrl.GetComponentsInChildren<DynamicBone>().Where(x => x.m_Root != null && (bool)!x.gameObject?.name.StartsWith("ca_slot")).ToList())
 								_logger.LogInfo(_cmp.m_Root.name);
 						}
 

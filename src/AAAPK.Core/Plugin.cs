@@ -29,7 +29,7 @@ namespace AAAPK
 	{
 		public const string GUID = "madevil.kk.AAAPK";
 		public const string Name = "AAAPK";
-		public const string Version = "1.2.0.0";
+		public const string Version = "1.2.1.0";
 
 		internal static ManualLogSource _logger;
 		internal static Harmony _hooksMaker;
