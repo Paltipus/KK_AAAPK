@@ -414,5 +414,41 @@ namespace AAAPK
 			[Key("ParentSlot")]
 			public int ParentSlot { get; set; }
 		}
+#if KKS
+		internal static void InitCardImport()
+		{
+			ExtendedSave.CardBeingImported += CardBeingImported;
+		}
+
+		internal static void CardBeingImported(Dictionary<string, PluginData> _importedExtData)
+		{
+			if (_importedExtData.TryGetValue(ExtDataKey, out PluginData _pluginData))
+			{
+				List<ParentRule> ParentRules = new List<ParentRule>();
+
+				if (_pluginData != null)
+				{
+					if (_pluginData.data.TryGetValue("ParentRules", out object _loadedParentRules) && _loadedParentRules != null)
+					{
+						List<ParentRule> _tempParentRules = MessagePackSerializer.Deserialize<List<ParentRule>>((byte[])_loadedParentRules);
+						if (_tempParentRules?.Count > 0)
+						{
+							_tempParentRules.RemoveAll(x => x.Coordinate > 0);
+							ParentRules.AddRange(_tempParentRules);
+						}
+					}
+				}
+
+				_importedExtData.Remove(ExtDataKey);
+
+				if (ParentRules?.Count > 0)
+				{
+					PluginData _pluginDataNew = new PluginData() { version = ExtDataVer };
+					_pluginDataNew.data.Add("ParentRules", MessagePackSerializer.Serialize(ParentRules));
+					_importedExtData[ExtDataKey] = _pluginDataNew;
+				}
+			}
+		}
+#endif
 	}
 }

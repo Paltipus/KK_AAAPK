@@ -8,9 +8,6 @@ using UnityEngine;
 
 using HarmonyLib;
 
-using KKAPI.Maker;
-using KKAPI.Maker.UI;
-
 namespace AAAPK
 {
 	public partial class AAAPK
@@ -132,40 +129,6 @@ namespace AAAPK
 				}
 
 				return _result;
-			}
-
-			internal static bool UI_ToggleButtonVisibility_Prefix()
-			{
-				if (!MakerAPI.InsideMaker)
-					return true;
-
-				MakerButton DynamicBoneEditorButton = Traverse.Create(DynamicBoneEditorUI).Field("DynamicBoneEditorButton").GetValue<MakerButton>();
-
-				if (DynamicBoneEditorButton == null)
-					return true;
-
-				GameObject _ca_slot = GetObjAccessory(ChaCustom.CustomBase.Instance.chaCtrl, AccessoriesApi.SelectedMakerAccSlot);
-				if (_ca_slot == null)
-					return true;
-
-				List<DynamicBone> _result = _ca_slot.GetComponentsInChildren<DynamicBone>(true)?.Where(x => x.m_Root != null).ToList();
-				if (_result?.Count > 0)
-				{
-					foreach (GameObject _gameObject in ListObjAccessory(_ca_slot))
-					{
-						if (_gameObject == _ca_slot) continue;
-						List<DynamicBone> _remove = _gameObject.GetComponentsInChildren<DynamicBone>(true)?.Where(x => x.m_Root != null).ToList();
-
-						if (_remove?.Count > 0)
-							_result.RemoveAll(x => _remove.Contains(x));
-					}
-					if (_result?.Count > 0)
-						_result.RemoveAll(x => x.m_Root.name.StartsWith("cf_j_sk_") || x.m_Root.name.StartsWith("cf_d_sk_"));
-				}
-
-				DynamicBoneEditorButton.Visible.OnNext(_result?.Count > 0);
-
-				return false;
 			}
 		}
 	}

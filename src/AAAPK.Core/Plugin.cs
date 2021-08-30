@@ -20,16 +20,20 @@ using KKAPI.Utilities;
 namespace AAAPK
 {
 	[BepInPlugin(GUID, Name, Version)]
-	[BepInDependency("madevil.JetPack", JetPack.Core.Version)]
+#if KKS
+	[BepInDependency("marco.kkapi", "1.24")]
+#elif KK
 	[BepInDependency("marco.kkapi", "1.17")]
+	[BepInDependency("com.joan6694.illusionplugins.moreaccessories", "1.1.0")]
+#endif
+	[BepInDependency("madevil.JetPack", JetPack.Core.Version)]
 	[BepInDependency("KKABMX.Core", "4.4.2")]
 	[BepInDependency("com.deathweasel.bepinex.accessoryclothes")]
-	[BepInDependency("com.joan6694.illusionplugins.moreaccessories", "1.1.0")]
 	public partial class AAAPK : BaseUnityPlugin
 	{
 		public const string GUID = "madevil.kk.AAAPK";
 		public const string Name = "AAAPK";
-		public const string Version = "1.2.1.0";
+		public const string Version = "1.3.0.0";
 
 		internal static ManualLogSource _logger;
 		internal static Harmony _hooksMaker;
@@ -47,6 +51,7 @@ namespace AAAPK
 
 		private static readonly string _savePath = Path.Combine(Paths.GameRootPath, "Temp");
 		public const int ExtDataVer = 1;
+		public const string ExtDataKey = "madevil.kk.AAAPK";
 		internal static Dictionary<string, Type> _typeList = new Dictionary<string, Type>();
 		internal static Type ChaAccessoryClothes = null;
 		internal static Type DynamicBoneEditorUI = null;
@@ -90,8 +95,11 @@ namespace AAAPK
 
 		private void Start()
 		{
-			CharacterApi.RegisterExtraBehaviour<AAAPKController>(GUID);
+			CharacterApi.RegisterExtraBehaviour<AAAPKController>(ExtDataKey);
 			Harmony _hooksInstance = Harmony.CreateAndPatchAll(typeof(Hooks), GUID);
+#if KKS
+			InitCardImport();
+#endif
 
 			{
 				BaseUnityPlugin _instance = JetPack.Toolbox.GetPluginInstance("madevil.kk.MovUrAcc");
@@ -117,7 +125,7 @@ namespace AAAPK
 				{
 					DynamicBoneEditorUI = _instance.GetType().Assembly.GetType("KK_Plugins.DynamicBoneEditor.UI");
 					_hooksInstance.Patch(DynamicBoneEditorUI.GetMethod("ShowUI", AccessTools.all, null, new[] { typeof(int) }, null), transpiler: new HarmonyMethod(typeof(Hooks), nameof(Hooks.UI_ShowUI_Transpiler)));
-					_hooksInstance.Patch(DynamicBoneEditorUI.GetMethod("ToggleButtonVisibility", AccessTools.all), prefix: new HarmonyMethod(typeof(Hooks), nameof(Hooks.UI_ToggleButtonVisibility_Prefix)));
+					_hooksInstance.Patch(DynamicBoneEditorUI.GetMethod("ToggleButtonVisibility", AccessTools.all), prefix: new HarmonyMethod(typeof(HooksMaker), nameof(HooksMaker.UI_ToggleButtonVisibility_Prefix)));
 
 					Type CharaController = _instance.GetType().Assembly.GetType("KK_Plugins.DynamicBoneEditor.CharaController");
 					//_hooksInstance.Patch(AccessTools.Method(CharaController.GetNestedType("<ApplyData>d__12", System.Reflection.BindingFlags.NonPublic), "MoveNext"), transpiler: new HarmonyMethod(typeof(Hooks), nameof(Hooks.CharaController_ApplyData_Transpiler)));
@@ -167,7 +175,7 @@ namespace AAAPK
 				_accWinCtrlEnable.OnClick.AddListener(() => _charaConfigWindow.enabled = true);
 			};
 
-			MakerAPI.MakerExiting += (_sender, _args) =>
+			JetPack.CharaMaker.OnMakerExiting += (_sender, _args) =>
 			{
 				_hooksMaker.UnpatchAll(_hooksMaker.Id);
 				_hooksMaker = null;

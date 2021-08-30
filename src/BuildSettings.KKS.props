@@ -5,7 +5,7 @@
     <DebugType>none</DebugType>
     <Optimize>true</Optimize>
     <OutputPath>$(SolutionDir)bin\Debug</OutputPath>
-    <DefineConstants>DEBUG;TRACE;KK</DefineConstants>
+    <DefineConstants>DEBUG;TRACE;KKS</DefineConstants>
     <ErrorReport>prompt</ErrorReport>
     <WarningLevel>4</WarningLevel>
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
@@ -15,7 +15,7 @@
     <DebugType>none</DebugType>
     <Optimize>true</Optimize>
     <OutputPath>$(SolutionDir)bin\Release</OutputPath>
-    <DefineConstants>TRACE;KK</DefineConstants>
+    <DefineConstants>TRACE;KKS</DefineConstants>
     <ErrorReport>prompt</ErrorReport>
     <WarningLevel>4</WarningLevel>
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>

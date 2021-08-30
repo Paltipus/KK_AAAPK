@@ -59,6 +59,9 @@ namespace AAAPK
 
 			private void DrawMakerWindow(int id)
 			{
+#if KKS
+				GUI.backgroundColor = Color.grey;
+#endif
 				Event _windowEvent = Event.current;
 				if (EventType.MouseDown == _windowEvent.type || EventType.MouseUp == _windowEvent.type || EventType.MouseDrag == _windowEvent.type || EventType.MouseMove == _windowEvent.type)
 					_hasFocus = true;

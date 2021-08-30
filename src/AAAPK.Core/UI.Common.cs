@@ -43,7 +43,11 @@ namespace AAAPK
 			private Vector2 _resScaleFactor = Vector2.one;
 			private Matrix4x4 _resScaleMatrix;
 
+#if KK
 			private readonly Color _windowBG = new Color(0.5f, 0.5f, 0.5f, 1f);
+#elif KKS
+			private readonly Color _windowBG = new Color(0.2f, 0.2f, 0.2f, 1f);
+#endif
 
 			private Vector2 _boneScrollPosition = Vector2.zero;
 			private Vector2 _accScrollPosition = Vector2.zero;
@@ -88,8 +92,9 @@ namespace AAAPK
 				if (!_onAccTab) return;
 				if (CustomBase.Instance?.chaCtrl == null) return;
 				if (CustomBase.Instance.customCtrl.hideFrontUI) return;
+#if KK
 				if (!Manager.Scene.Instance.AddSceneName.IsNullOrEmpty() && Manager.Scene.Instance.AddSceneName != "CustomScene") return;
-
+#endif
 				if (_currentCoordinateIndex != CustomBase.Instance.chaCtrl.fileStatus.coordinateType)
 				{
 					_currentCoordinateIndex = CustomBase.Instance.chaCtrl.fileStatus.coordinateType;
