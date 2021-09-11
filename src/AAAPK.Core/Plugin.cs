@@ -12,6 +12,11 @@ using BepInEx.Configuration;
 using BepInEx.Logging;
 using HarmonyLib;
 
+using ExtensibleSaveFormat;
+
+using KKABMX.Core;
+
+using KKAPI;
 using KKAPI.Chara;
 using KKAPI.Maker;
 using KKAPI.Maker.UI;
@@ -20,15 +25,14 @@ using KKAPI.Utilities;
 namespace AAAPK
 {
 	[BepInPlugin(GUID, Name, Version)]
-#if KKS
-	[BepInDependency("marco.kkapi", "1.24")]
-#elif KK
-	[BepInDependency("marco.kkapi", "1.17")]
+	[BepInDependency(KoikatuAPI.GUID, KoikatuAPI.VersionConst)]
+	[BepInDependency(ExtendedSave.GUID, ExtendedSave.Version)]
+	[BepInDependency("madevil.JetPack", JetPack.Core.Version)]
+	[BepInDependency("KKABMX.Core", KKABMX_Core.Version)]
+	[BepInDependency("com.deathweasel.bepinex.accessoryclothes")]
+#if KK
 	[BepInDependency("com.joan6694.illusionplugins.moreaccessories", "1.1.0")]
 #endif
-	[BepInDependency("madevil.JetPack", JetPack.Core.Version)]
-	[BepInDependency("KKABMX.Core", "4.4.2")]
-	[BepInDependency("com.deathweasel.bepinex.accessoryclothes")]
 	public partial class AAAPK : BaseUnityPlugin
 	{
 		public const string GUID = "madevil.kk.AAAPK";
@@ -100,6 +104,15 @@ namespace AAAPK
 #if KKS
 			InitCardImport();
 #endif
+			if (JetPack.Game.HasDarkness)
+			{
+				_hooksInstance.Patch(Type.GetType("ChaControl, Assembly-CSharp").GetMethod("ChangeShakeAccessory", AccessTools.all, null, new[] { typeof(int) }, null), prefix: new HarmonyMethod(typeof(Hooks), nameof(Hooks.ChaControl_ChangeShakeAccessory_Prefix)));
+
+				if (JetPack.MoreAccessories.Installed)
+				{
+					_hooksInstance.Patch(JetPack.MoreAccessories.Instance.GetType().Assembly.GetType("MoreAccessoriesKOI.ChaControl_ChangeShakeAccessory_Patches").GetMethod("Prefix", AccessTools.all), prefix: new HarmonyMethod(typeof(Hooks), nameof(Hooks.ReturnFalse)));
+				}
+			}
 
 			{
 				BaseUnityPlugin _instance = JetPack.Toolbox.GetPluginInstance("madevil.kk.MovUrAcc");

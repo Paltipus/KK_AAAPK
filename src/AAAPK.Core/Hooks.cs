@@ -14,6 +14,28 @@ namespace AAAPK
 	{
 		internal static partial class Hooks
 		{
+			internal static bool ReturnFalse() => false;
+
+			internal static bool ChaControl_ChangeShakeAccessory_Prefix(ChaControl __instance, int slotNo)
+			{
+				if (__instance == null || slotNo < 0) return true;
+				GameObject _ca_slot = JetPack.Accessory.GetObjAccessory(__instance, slotNo);
+				if (_ca_slot == null) return true;
+				DynamicBone[] _cmps = _ca_slot.GetComponents<DynamicBone>();
+				if (_cmps?.Length > 0)
+				{
+					ChaFileAccessory.PartsInfo _part = JetPack.Accessory.GetPartsInfo(__instance, slotNo);
+					bool _noShake = Traverse.Create(_part).Property("noShake").GetValue<bool>();
+					foreach (DynamicBone _cmp in _cmps)
+					{
+						if (_cmp.m_Root != null)
+							_cmp.enabled = !_noShake;
+					}
+				}
+
+				return false;
+			}
+
 			internal static void MaterialAPI_GetRendererList_Postfix(ref IEnumerable<Renderer> __result, GameObject gameObject)
 			{
 				if (gameObject == null)

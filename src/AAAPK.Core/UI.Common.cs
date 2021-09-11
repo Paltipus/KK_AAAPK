@@ -102,9 +102,9 @@ namespace AAAPK
 					_needRefreshSlotInfo = true;
 				}
 
-				if (_currentSlotIndex != AccessoriesApi.SelectedMakerAccSlot)
+				if (_currentSlotIndex != JetPack.CharaMaker.CurrentAccssoryIndex)
 				{
-					_currentSlotIndex = AccessoriesApi.SelectedMakerAccSlot;
+					_currentSlotIndex = JetPack.CharaMaker.CurrentAccssoryIndex;
 					//RefreshSlotInfo();
 					_needRefreshSlotInfo = true;
 				}

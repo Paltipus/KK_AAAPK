@@ -51,7 +51,7 @@ namespace AAAPK
 				yield return JetPack.Toolbox.WaitForEndOfFrame;
 				yield return JetPack.Toolbox.WaitForEndOfFrame;
 
-				_logger.LogWarning($"[Warp][position]{_selectedParentRect.position.x}, {_selectedParentRect.position.y}");
+				DebugMsg(LogLevel.Info, $"[Warp][position]{_selectedParentRect.position.x}, {_selectedParentRect.position.y}");
 				float _posX = _selectedParentRect.position.x < 120 ? 0 : _selectedParentRect.position.x - 120;
 				float _posY = _selectedParentRect.position.y < 200 ? 0 : _selectedParentRect.position.y - 200;
 				_boneScrollPosition = new Vector2(_posX, _posY);
@@ -480,8 +480,8 @@ namespace AAAPK
 			{
 				get
 				{
-					return CustomBase.Instance?.chaCtrl.objAnim.transform.Find("cf_j_root").gameObject;
-					//return CustomBase.Instance?.chaCtrl?.transform.Find("BodyTop").gameObject;
+					return _chaCtrl.objAnim.transform.Find("cf_j_root").gameObject;
+					//return _chaCtrl?.transform.Find("BodyTop").gameObject;
 				}
 			}
 

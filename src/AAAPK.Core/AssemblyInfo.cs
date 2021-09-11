@@ -2,7 +2,7 @@
 using static AAAPK.AAAPK;
 
 [assembly: AssemblyTitle(Name)]
-[assembly: AssemblyCompany("")]
+[assembly: AssemblyCompany("https://github.com/Madevil/KK_AAAPK")]
 [assembly: AssemblyDescription(Name)]
 [assembly: AssemblyProduct(Name)]
 [assembly: AssemblyVersion(Version)]
