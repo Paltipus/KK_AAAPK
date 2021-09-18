@@ -37,7 +37,7 @@ namespace AAAPK
 	{
 		public const string GUID = "madevil.kk.AAAPK";
 		public const string Name = "AAAPK";
-		public const string Version = "1.3.0.0";
+		public const string Version = "1.3.1.0";
 
 		internal static ManualLogSource _logger;
 		internal static Harmony _hooksMaker;
@@ -201,17 +201,17 @@ namespace AAAPK
 
 				if (_args.TopIndex == 4)
 				{
-					if (_args.SideToggle?.GetComponentInChildren<CvsAccessory>(true) == null)
-					{
-						_charaConfigWindow.enabled = false;
-						return;
-					}
-
 					int _slotIndex = _args.SideToggle.GetComponentInChildren<CvsAccessory>(true).SlotIndex();
 					_charaConfigWindow._onAccTab = true;
 					StartCoroutine(ToggleButtonVisibility());
 					if (_pluginCtrl.GetSlotRule(_slotIndex) != null)
 						_pluginCtrl.ApplyParentRuleList("OnCvsNavMenuClick");
+
+					if (_args.SideToggle?.GetComponentInChildren<CvsAccessory>(true) == null)
+					{
+						_charaConfigWindow.enabled = false;
+						return;
+					}
 				}
 				else
 				{

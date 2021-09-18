@@ -89,7 +89,6 @@ namespace AAAPK
 						}
 					}
 				}
-				RefreshCache();
 				StartCoroutine(OnCoordinateBeingLoadedCoroutine());
 				base.OnCoordinateBeingLoaded(coordinate);
 			}
@@ -98,6 +97,7 @@ namespace AAAPK
 			{
 				yield return JetPack.Toolbox.WaitForEndOfFrame;
 				yield return JetPack.Toolbox.WaitForEndOfFrame;
+				RefreshCache();
 				_duringLoadChange = false;
 			}
 
