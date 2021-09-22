@@ -37,7 +37,7 @@ namespace AAAPK
 	{
 		public const string GUID = "madevil.kk.AAAPK";
 		public const string Name = "AAAPK";
-		public const string Version = "1.3.1.0";
+		public const string Version = "1.3.2.0";
 
 		internal static ManualLogSource _logger;
 		internal static Harmony _hooksMaker;
@@ -186,6 +186,7 @@ namespace AAAPK
 
 				_accWinCtrlEnable = MakerAPI.AddAccessoryWindowControl(new MakerButton("AAAPK", null, _instance));
 				_accWinCtrlEnable.OnClick.AddListener(() => _charaConfigWindow.enabled = true);
+				_accWinCtrlEnable.Visible.OnNext(false);
 			};
 
 			JetPack.CharaMaker.OnMakerExiting += (_sender, _args) =>
@@ -230,8 +231,13 @@ namespace AAAPK
 			yield return JetPack.Toolbox.WaitForEndOfFrame;
 			yield return JetPack.Toolbox.WaitForEndOfFrame;
 
-			ChaFileAccessory.PartsInfo _part = JetPack.Accessory.GetPartsInfo(CustomBase.Instance.chaCtrl, JetPack.CharaMaker.CurrentAccssoryIndex);
-			_accWinCtrlEnable.Visible.OnNext(_part?.type != 120);
+			if (JetPack.CharaMaker.CurrentAccssoryIndex < 0)
+				_accWinCtrlEnable.Visible.OnNext(false);
+			else
+			{
+				ChaFileAccessory.PartsInfo _part = JetPack.Accessory.GetPartsInfo(CustomBase.Instance.chaCtrl, JetPack.CharaMaker.CurrentAccssoryIndex);
+				_accWinCtrlEnable.Visible.OnNext(_part?.type != 120);
+			}
 		}
 
 		internal static GameObject GetObjAccessory(ChaControl _chaCtrl, int _slotIndex) => JetPack.Accessory.GetObjAccessory(_chaCtrl, _slotIndex);
