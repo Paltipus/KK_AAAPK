@@ -37,7 +37,7 @@ namespace AAAPK
 	{
 		public const string GUID = "madevil.kk.AAAPK";
 		public const string Name = "AAAPK";
-		public const string Version = "1.3.2.0";
+		public const string Version = "1.4.0.0";
 
 		internal static ManualLogSource _logger;
 		internal static Harmony _hooksMaker;
@@ -50,8 +50,10 @@ namespace AAAPK
 		internal static ConfigEntry<float> _cfgMakerWinY;
 		internal static ConfigEntry<bool> _cfgMakerWinResScale;
 		internal static ConfigEntry<bool> _cfgRemoveUnassignedPart;
+		internal static ConfigEntry<Color> _cfgBonelyfanColor;
 
 		internal static MakerButton _accWinCtrlEnable;
+		internal static string _boneInicatorName = "AAAPK_indicator";
 
 		private static readonly string _savePath = Path.Combine(Paths.GameRootPath, "Temp");
 		public const int ExtDataVer = 1;
@@ -67,11 +69,11 @@ namespace AAAPK
 
 			_cfgDebugMode = Config.Bind("Debug", "Debug Mode", false, new ConfigDescription("", null, new ConfigurationManagerAttributes { IsAdvanced = true, Order = 20 }));
 
-			_cfgRemoveUnassignedPart = Config.Bind("Maker", "Remove Unassigned Part", true, new ConfigDescription("Remove rules for missing or unassigned accesseries", null, new ConfigurationManagerAttributes { Order = 20 }));
+			_cfgRemoveUnassignedPart = Config.Bind("Maker", "Remove Unassigned Part", true, new ConfigDescription("Remove rules for missing or unassigned accesseries", null, new ConfigurationManagerAttributes { Order = 20, Browsable = !JetPack.CharaStudio.Running }));
 
-			_cfgDragPass = Config.Bind("Maker", "Drag Pass Mode", false, new ConfigDescription("Setting window will not block mouse dragging", null, new ConfigurationManagerAttributes { Order = 15 }));
+			_cfgDragPass = Config.Bind("Maker", "Drag Pass Mode", false, new ConfigDescription("Setting window will not block mouse dragging", null, new ConfigurationManagerAttributes { Order = 15, Browsable = !JetPack.CharaStudio.Running }));
 
-			_cfgMakerWinX = Config.Bind("Maker", "Config Window Startup X", 525f, new ConfigDescription("", null, new ConfigurationManagerAttributes { Order = 19 }));
+			_cfgMakerWinX = Config.Bind("Maker", "Config Window Startup X", 525f, new ConfigDescription("", null, new ConfigurationManagerAttributes { Order = 19, Browsable = !JetPack.CharaStudio.Running }));
 			_cfgMakerWinX.SettingChanged += (_sender, _args) =>
 			{
 				if (_charaConfigWindow == null) return;
@@ -80,7 +82,7 @@ namespace AAAPK
 					_charaConfigWindow._windowPos.x = _cfgMakerWinX.Value;
 				}
 			};
-			_cfgMakerWinY = Config.Bind("Maker", "Config Window Startup Y", 80f, new ConfigDescription("", null, new ConfigurationManagerAttributes { Order = 18 }));
+			_cfgMakerWinY = Config.Bind("Maker", "Config Window Startup Y", 80f, new ConfigDescription("", null, new ConfigurationManagerAttributes { Order = 18, Browsable = !JetPack.CharaStudio.Running }));
 			_cfgMakerWinY.SettingChanged += (_sender, _args) =>
 			{
 				if (_charaConfigWindow == null) return;
@@ -89,11 +91,20 @@ namespace AAAPK
 					_charaConfigWindow._windowPos.y = _cfgMakerWinY.Value;
 				}
 			};
-			_cfgMakerWinResScale = Config.Bind("Maker", "Config Window Resolution Adjust", false, new ConfigDescription("", null, new ConfigurationManagerAttributes { Order = 17 }));
+			_cfgMakerWinResScale = Config.Bind("Maker", "Config Window Resolution Adjust", false, new ConfigDescription("", null, new ConfigurationManagerAttributes { Order = 17, Browsable = !JetPack.CharaStudio.Running }));
 			_cfgMakerWinResScale.SettingChanged += (_sender, _args) =>
 			{
 				if (_charaConfigWindow == null) return;
 				_charaConfigWindow.ChangeRes();
+			};
+
+			_cfgBonelyfanColor = Config.Bind("Maker", "Indicator Color", new Color(1, 0f, 1f, 1f), new ConfigDescription("", null, new ConfigurationManagerAttributes { Order = 16, Browsable = !JetPack.CharaStudio.Running }));
+			_cfgBonelyfanColor.SettingChanged += (_sender, _args) =>
+			{
+				if (_assetSphere == null) return;
+				_assetSphere.GetComponent<Renderer>().material.SetColor("_Color", _cfgBonelyfanColor.Value);
+				if (_charaConfigWindow == null || _charaConfigWindow._boneInicator == null) return;
+				_charaConfigWindow._boneInicator.GetComponent<Renderer>().material.SetColor("_Color", _cfgBonelyfanColor.Value);
 			};
 		}
 
@@ -224,6 +235,8 @@ namespace AAAPK
 			JetPack.Chara.OnChangeCoordinateType += (_sender, _args) => OnChangeCoordinateType(_args);
 
 			JetPack.MaterialEditor.OnDataApply += (_sender, _args) => OnDataApply(_args);
+
+			Init_Indicator();
 		}
 
 		internal static IEnumerator ToggleButtonVisibility()

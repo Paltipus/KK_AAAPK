@@ -68,6 +68,9 @@ namespace AAAPK
 
 			private bool _cfgKeepPos = true;
 			private bool _cfgKeepRot = true;
+			private bool _cfgShowInicator = true;
+
+			internal Transform _boneInicator = null;
 
 			internal ChaControl _chaCtrl => CustomBase.Instance?.chaCtrl;
 			internal AAAPKController _pluginCtrl => _chaCtrl?.GetComponent<AAAPKController>();

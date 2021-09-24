@@ -332,6 +332,21 @@ namespace AAAPK
 					{
 						_cfgKeepPos = GUILayout.Toggle(_cfgKeepPos, new GUIContent(" keep position", "Preserve position on changing parent"));
 						_cfgKeepRot = GUILayout.Toggle(_cfgKeepRot, new GUIContent(" keep rotation", "Preserve rotation on changing parent"));
+
+						bool _showIndicator = _cfgShowInicator;
+						if (_showIndicator != GUILayout.Toggle(_cfgShowInicator, new GUIContent(" indicator", "Show a indicator of selected node")))
+						{
+							if (_boneInicator == null)
+							{
+								_cfgShowInicator = false;
+							}
+							else
+							{
+								_cfgShowInicator = !_boneInicator.gameObject.activeSelf;
+								_boneInicator.gameObject.SetActive(_cfgShowInicator);
+							}
+						}
+
 						GUILayout.FlexibleSpace();
 					}
 					GUILayout.EndHorizontal();
@@ -417,6 +432,8 @@ namespace AAAPK
 
 			private void BuildObjectTree(GameObject _gameObject, int indentLevel)
 			{
+				if (_gameObject.name == _boneInicatorName) return;
+
 				if (_searchTerm.Length == 0 || _gameObject.name.IndexOf(_searchTerm, StringComparison.OrdinalIgnoreCase) > -1 || _openedNodes.Contains(_gameObject.transform.parent.gameObject))
 				{
 					Color _color = GUI.color;
@@ -433,7 +450,11 @@ namespace AAAPK
 					else
 						indentLevel = 0;
 
-					if (_gameObject.transform.childCount > 0)
+					if (_gameObject.transform.childCount == 1 && _gameObject.transform.GetChild(0).name == _boneInicatorName)
+                    {
+						GUILayout.Space(19);
+					}
+					else if (_gameObject.transform.childCount > 0)
 					{
 						if (GUILayout.Toggle(_openedNodes.Contains(_gameObject), "", GUILayout.ExpandWidth(false)))
 							_openedNodes.Add(_gameObject);
@@ -489,6 +510,29 @@ namespace AAAPK
 			{
 				_selectedBoneGameObject = _gameObject;
 				_selectedBonePath = BuildParentString(_gameObject);
+
+				if (_gameObject == null)
+				{
+					if (_boneInicator != null)
+						Destroy(_boneInicator.gameObject);
+				}
+				else
+				{
+					if (_boneInicator == null)
+					{
+						Transform _copy = Instantiate(_assetSphere.transform, _selectedBoneGameObject.transform, false);
+						if (_copy != null)
+						{
+							_copy.name = _boneInicatorName;
+							_boneInicator = _copy;
+						}
+					}
+					else
+					{
+						_boneInicator.SetParent(_selectedBoneGameObject.transform, false);
+					}
+					_boneInicator.gameObject.SetActive(_cfgShowInicator);
+				}
 			}
 
 			internal void SetSelectedParent(GameObject _gameObject)

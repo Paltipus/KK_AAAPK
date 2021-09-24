@@ -9,6 +9,7 @@
     <Import_RootNamespace>AAAPK.Core</Import_RootNamespace>
   </PropertyGroup>
   <ItemGroup>
+    <Compile Include="$(MSBuildThisFileDirectory)Assets.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Controller.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Event.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)Extdata.cs" />
@@ -20,5 +21,7 @@
     <Compile Include="$(MSBuildThisFileDirectory)AssemblyInfo.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)UI.Common.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)UI.Main.cs" />
+    <EmbeddedResource Include="$(MSBuildThisFileDirectory)Resources\bonelyfans.unity3d" />
+    <EmbeddedResource Include="$(MSBuildThisFileDirectory)Resources\sphere.unity3d" />
   </ItemGroup>
 </Project>
